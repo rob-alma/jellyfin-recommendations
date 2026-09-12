@@ -2,13 +2,13 @@
   "category": "General",
   "guid": "9985ba03-cbb5-4b44-a997-3a141a1232ab",
   "name": "PersonalRecommendations",
-  "description": "Builds a per-user taste profile from previously watched movies and series (genres, cast, crew, studios) and maintains a \"Recommended For You\" collection for each user, kept up to date on a schedule and after playback.",
+  "description": "Builds a per-user taste profile from previously watched movies and series (genres, cast, crew, studios) and maintains a private \"Recommended For You\" playlist for each user, kept up to date on a schedule and after playback.",
   "overview": "Personalized recommendations based on watch history",
   "owner": "robalma7",
   "targetAbi": "10.11.0.0",
   "framework": "net9.0",
-  "version": "0.1.0.0",
-  "changelog": "Initial release: per-user taste profiling from watch history, scheduled and playback-triggered recommendation refresh, managed \"Recommended For You\" collection per user, admin API, configuration page.",
+  "version": "0.2.0.0",
+  "changelog": "0.2.0: Switched from collections to playlists for delivering recommendations — Jellyfin collections ignore per-user visibility, so they were showing up for every user instead of staying private. Playlists have a real owner and are private by default; recommended series are represented by their next unwatched episode so a series doesn't get expanded into every episode. 0.1.0: Initial release.",
   "artifacts": [
     "Jellyfin.Plugin.PersonalRecommendations.dll",
     "Jellyfin.Plugin.PersonalRecommendations.Core.dll"

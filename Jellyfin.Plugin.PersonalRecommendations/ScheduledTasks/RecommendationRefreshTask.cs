@@ -12,13 +12,13 @@ namespace Jellyfin.Plugin.PersonalRecommendations.ScheduledTasks;
 
 /// <summary>
 /// Scheduled task that rebuilds every user's taste profile from watch history and updates
-/// their "Recommended For You" collection.
+/// their "Recommended For You" playlist.
 /// </summary>
 public sealed class RecommendationRefreshTask : IScheduledTask
 {
     private readonly IUserManager _userManager;
     private readonly RecommendationEngine _engine;
-    private readonly RecommendationCollectionService _collectionService;
+    private readonly RecommendationPlaylistService _playlistService;
     private readonly ILogger<RecommendationRefreshTask> _logger;
 
     /// <summary>
@@ -26,17 +26,17 @@ public sealed class RecommendationRefreshTask : IScheduledTask
     /// </summary>
     /// <param name="userManager">Jellyfin's user manager.</param>
     /// <param name="engine">The recommendation engine.</param>
-    /// <param name="collectionService">Updates the managed collection.</param>
+    /// <param name="playlistService">Updates the managed playlist.</param>
     /// <param name="logger">Logger.</param>
     public RecommendationRefreshTask(
         IUserManager userManager,
         RecommendationEngine engine,
-        RecommendationCollectionService collectionService,
+        RecommendationPlaylistService playlistService,
         ILogger<RecommendationRefreshTask> logger)
     {
         _userManager = userManager;
         _engine = engine;
-        _collectionService = collectionService;
+        _playlistService = playlistService;
         _logger = logger;
     }
 
@@ -47,7 +47,7 @@ public sealed class RecommendationRefreshTask : IScheduledTask
     public string Key => "Jellyfin.Plugin.PersonalRecommendations.Refresh";
 
     /// <inheritdoc />
-    public string Description => "Rebuilds each user's taste profile from watch history and updates their \"Recommended For You\" collection.";
+    public string Description => "Rebuilds each user's taste profile from watch history and updates their \"Recommended For You\" playlist.";
 
     /// <inheritdoc />
     public string Category => "Personal Recommendations";
@@ -73,7 +73,7 @@ public sealed class RecommendationRefreshTask : IScheduledTask
             try
             {
                 var recommendations = _engine.GenerateForUser(user, snapshot, config);
-                await _collectionService.UpdateCollectionAsync(user, recommendations, config, cancellationToken).ConfigureAwait(false);
+                await _playlistService.UpdatePlaylistAsync(user, recommendations, snapshot, config, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

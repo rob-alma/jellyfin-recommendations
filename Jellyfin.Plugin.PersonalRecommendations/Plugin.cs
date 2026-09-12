@@ -34,7 +34,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     public override string Name => "Personal Recommendations";
 
     /// <inheritdoc />
-    public override string Description => "Personalized \"Recommended For You\" collections built from each user's watch history.";
+    public override string Description => "Personalized, private \"Recommended For You\" playlists built from each user's watch history.";
 
     /// <inheritdoc />
     public override Guid Id => PluginGuid;

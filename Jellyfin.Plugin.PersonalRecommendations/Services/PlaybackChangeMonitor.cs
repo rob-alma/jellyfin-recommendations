@@ -18,7 +18,7 @@ public sealed class PlaybackChangeMonitor : IHostedService, IDisposable
     private readonly IUserDataManager _userDataManager;
     private readonly IUserManager _userManager;
     private readonly RecommendationEngine _engine;
-    private readonly RecommendationCollectionService _collectionService;
+    private readonly RecommendationPlaylistService _playlistService;
     private readonly ILogger<PlaybackChangeMonitor> _logger;
     private readonly ConcurrentDictionary<Guid, Timer> _pendingTimers = new();
 
@@ -28,19 +28,19 @@ public sealed class PlaybackChangeMonitor : IHostedService, IDisposable
     /// <param name="userDataManager">Jellyfin's user data manager.</param>
     /// <param name="userManager">Jellyfin's user manager.</param>
     /// <param name="engine">The recommendation engine.</param>
-    /// <param name="collectionService">Updates the managed collection.</param>
+    /// <param name="playlistService">Updates the managed playlist.</param>
     /// <param name="logger">Logger.</param>
     public PlaybackChangeMonitor(
         IUserDataManager userDataManager,
         IUserManager userManager,
         RecommendationEngine engine,
-        RecommendationCollectionService collectionService,
+        RecommendationPlaylistService playlistService,
         ILogger<PlaybackChangeMonitor> logger)
     {
         _userDataManager = userDataManager;
         _userManager = userManager;
         _engine = engine;
-        _collectionService = collectionService;
+        _playlistService = playlistService;
         _logger = logger;
     }
 
@@ -121,7 +121,7 @@ public sealed class PlaybackChangeMonitor : IHostedService, IDisposable
             var config = Plugin.Instance!.Configuration;
             var snapshot = _engine.GetSnapshot();
             var recommendations = _engine.GenerateForUser(user, snapshot, config);
-            await _collectionService.UpdateCollectionAsync(user, recommendations, config, CancellationToken.None).ConfigureAwait(false);
+            await _playlistService.UpdatePlaylistAsync(user, recommendations, snapshot, config, CancellationToken.None).ConfigureAwait(false);
         }
         catch (Exception ex)
         {

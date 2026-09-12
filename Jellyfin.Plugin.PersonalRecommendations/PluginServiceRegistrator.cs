@@ -20,7 +20,7 @@ public sealed class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddSingleton<WatchHistoryReader>();
         serviceCollection.AddSingleton<CandidateProvider>();
         serviceCollection.AddSingleton<RecommendationEngine>();
-        serviceCollection.AddSingleton<RecommendationCollectionService>();
+        serviceCollection.AddSingleton<RecommendationPlaylistService>();
         serviceCollection.AddHostedService<PlaybackChangeMonitor>();
         serviceCollection.AddSingleton<IScheduledTask, RecommendationRefreshTask>();
     }

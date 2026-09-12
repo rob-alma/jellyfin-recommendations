@@ -11,7 +11,7 @@
                 <form id="PersonalRecommendationsConfigForm">
                     <div class="verticalSection">
                         <h2>Personal Recommendations</h2>
-                        <p>Builds a per-user taste profile from watch history (genres, cast, crew, studios) and keeps a "Recommended For You" collection up to date for every user.</p>
+                        <p>Builds a per-user taste profile from watch history (genres, cast, crew, studios) and keeps a private "Recommended For You" playlist up to date for every user.</p>
                     </div>
 
                     <div class="checkboxContainer checkboxContainer-withDescription">
@@ -27,8 +27,8 @@
                     </div>
 
                     <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="CollectionNameTemplate">Collection name</label>
-                        <input id="CollectionNameTemplate" name="CollectionNameTemplate" type="text" is="emby-input" />
+                        <label class="inputLabel inputLabelUnfocused" for="PlaylistNameTemplate">Playlist name</label>
+                        <input id="PlaylistNameTemplate" name="PlaylistNameTemplate" type="text" is="emby-input" />
                         <div class="fieldDescription">Use <code>{username}</code> to include the user's name.</div>
                     </div>
 
@@ -103,7 +103,7 @@
                     ApiClient.getPluginConfiguration(PersonalRecommendationsConfig.pluginUniqueId).then(function (config) {
                         document.querySelector('#Enabled').checked = config.Enabled;
                         document.querySelector('#RecommendationLimit').value = config.RecommendationLimit;
-                        document.querySelector('#CollectionNameTemplate').value = config.CollectionNameTemplate;
+                        document.querySelector('#PlaylistNameTemplate').value = config.PlaylistNameTemplate;
                         document.querySelector('#DiversityCapPerGroup').value = config.DiversityCapPerGroup;
                         document.querySelector('#MinimumCommunityRating').value = config.MinimumCommunityRating;
                         document.querySelector('#IncludeMovies').checked = config.IncludeMovies;
@@ -121,7 +121,7 @@
                     ApiClient.getPluginConfiguration(PersonalRecommendationsConfig.pluginUniqueId).then(function (config) {
                         config.Enabled = document.querySelector('#Enabled').checked;
                         config.RecommendationLimit = parseInt(document.querySelector('#RecommendationLimit').value, 10);
-                        config.CollectionNameTemplate = document.querySelector('#CollectionNameTemplate').value;
+                        config.PlaylistNameTemplate = document.querySelector('#PlaylistNameTemplate').value;
                         config.DiversityCapPerGroup = parseInt(document.querySelector('#DiversityCapPerGroup').value, 10);
                         config.MinimumCommunityRating = parseFloat(document.querySelector('#MinimumCommunityRating').value);
                         config.IncludeMovies = document.querySelector('#IncludeMovies').checked;

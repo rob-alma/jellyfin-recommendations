@@ -16,7 +16,7 @@ public class PluginConfiguration : BasePluginConfiguration
     {
         Enabled = true;
         RecommendationLimit = 20;
-        CollectionNameTemplate = "Recommended For You";
+        PlaylistNameTemplate = "Recommended For You";
         ScheduledRefreshIntervalHours = 6;
         AutoRefreshAfterPlayback = true;
         AutoRefreshDebounceMinutes = 3;
@@ -24,7 +24,7 @@ public class PluginConfiguration : BasePluginConfiguration
         IncludeSeries = true;
         MinimumCommunityRating = 0;
         DiversityCapPerGroup = 3;
-        CollectionMappings = new List<UserCollectionMapping>();
+        PlaylistMappings = new List<UserPlaylistMapping>();
     }
 
     /// <summary>
@@ -38,9 +38,9 @@ public class PluginConfiguration : BasePluginConfiguration
     public int RecommendationLimit { get; set; }
 
     /// <summary>
-    /// Gets or sets the collection name template. Supports the <c>{username}</c> placeholder.
+    /// Gets or sets the playlist name template. Supports the <c>{username}</c> placeholder.
     /// </summary>
-    public string CollectionNameTemplate { get; set; }
+    public string PlaylistNameTemplate { get; set; }
 
     /// <summary>
     /// Gets or sets the scheduled refresh interval, in hours.
@@ -80,16 +80,16 @@ public class PluginConfiguration : BasePluginConfiguration
     public int DiversityCapPerGroup { get; set; }
 
     /// <summary>
-    /// Gets or sets the per-user managed collection ids, so refreshes update the same
-    /// collection instead of creating a new one every time.
+    /// Gets or sets the per-user managed playlist ids, so refreshes update the same playlist
+    /// instead of creating a new one every time.
     /// </summary>
-    public List<UserCollectionMapping> CollectionMappings { get; set; }
+    public List<UserPlaylistMapping> PlaylistMappings { get; set; }
 }
 
 /// <summary>
-/// Tracks which Jellyfin collection the plugin created for a given user.
+/// Tracks which Jellyfin playlist the plugin created for a given user.
 /// </summary>
-public class UserCollectionMapping
+public class UserPlaylistMapping
 {
     /// <summary>
     /// Gets or sets the user id.
@@ -97,7 +97,7 @@ public class UserCollectionMapping
     public Guid UserId { get; set; }
 
     /// <summary>
-    /// Gets or sets the managed collection (BoxSet) id.
+    /// Gets or sets the managed playlist id.
     /// </summary>
-    public Guid CollectionId { get; set; }
+    public Guid PlaylistId { get; set; }
 }

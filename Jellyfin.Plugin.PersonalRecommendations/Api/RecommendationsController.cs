@@ -21,24 +21,24 @@ public sealed class RecommendationsController : ControllerBase
 {
     private readonly IUserManager _userManager;
     private readonly RecommendationEngine _engine;
-    private readonly RecommendationCollectionService _collectionService;
+    private readonly RecommendationPlaylistService _playlistService;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RecommendationsController"/> class.
     /// </summary>
     /// <param name="userManager">Jellyfin's user manager.</param>
     /// <param name="engine">The recommendation engine.</param>
-    /// <param name="collectionService">Updates the managed collection.</param>
-    public RecommendationsController(IUserManager userManager, RecommendationEngine engine, RecommendationCollectionService collectionService)
+    /// <param name="playlistService">Updates the managed playlist.</param>
+    public RecommendationsController(IUserManager userManager, RecommendationEngine engine, RecommendationPlaylistService playlistService)
     {
         _userManager = userManager;
         _engine = engine;
-        _collectionService = collectionService;
+        _playlistService = playlistService;
     }
 
     /// <summary>
     /// Gets the current recommendations for a user, computed on demand (does not touch the
-    /// managed collection).
+    /// managed playlist).
     /// </summary>
     /// <param name="userId">The user id.</param>
     [HttpGet("{userId}")]
@@ -58,7 +58,7 @@ public sealed class RecommendationsController : ControllerBase
     }
 
     /// <summary>
-    /// Refreshes recommendations, and the managed collection, for every user.
+    /// Refreshes recommendations, and the managed playlist, for every user.
     /// </summary>
     /// <param name="cancellationToken">Cancellation token.</param>
     [HttpPost("Refresh")]
@@ -70,14 +70,14 @@ public sealed class RecommendationsController : ControllerBase
         foreach (var user in _userManager.GetUsers())
         {
             var recommendations = _engine.GenerateForUser(user, snapshot, config);
-            await _collectionService.UpdateCollectionAsync(user, recommendations, config, cancellationToken).ConfigureAwait(false);
+            await _playlistService.UpdatePlaylistAsync(user, recommendations, snapshot, config, cancellationToken).ConfigureAwait(false);
         }
 
         return NoContent();
     }
 
     /// <summary>
-    /// Refreshes recommendations, and the managed collection, for one user.
+    /// Refreshes recommendations, and the managed playlist, for one user.
     /// </summary>
     /// <param name="userId">The user id.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
@@ -93,7 +93,7 @@ public sealed class RecommendationsController : ControllerBase
         var config = Plugin.Instance!.Configuration;
         var snapshot = _engine.GetSnapshot();
         var recommendations = _engine.GenerateForUser(user, snapshot, config);
-        await _collectionService.UpdateCollectionAsync(user, recommendations, config, cancellationToken).ConfigureAwait(false);
+        await _playlistService.UpdatePlaylistAsync(user, recommendations, snapshot, config, cancellationToken).ConfigureAwait(false);
 
         return NoContent();
     }
