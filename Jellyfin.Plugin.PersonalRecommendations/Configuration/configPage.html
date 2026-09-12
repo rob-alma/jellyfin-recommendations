@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Personal Recommendations</title>
+</head>
+<body>
+    <div id="PersonalRecommendationsConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-checkbox">
+        <div data-role="content">
+            <div class="content-primary">
+                <form id="PersonalRecommendationsConfigForm">
+                    <div class="verticalSection">
+                        <h2>Personal Recommendations</h2>
+                        <p>Builds a per-user taste profile from watch history (genres, cast, crew, studios) and keeps a "Recommended For You" collection up to date for every user.</p>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="Enabled" name="Enabled" type="checkbox" is="emby-checkbox" />
+                            <span>Enabled</span>
+                        </label>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="RecommendationLimit">Recommendations per user</label>
+                        <input id="RecommendationLimit" name="RecommendationLimit" type="number" is="emby-input" min="1" max="200" />
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="CollectionNameTemplate">Collection name</label>
+                        <input id="CollectionNameTemplate" name="CollectionNameTemplate" type="text" is="emby-input" />
+                        <div class="fieldDescription">Use <code>{username}</code> to include the user's name.</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="DiversityCapPerGroup">Max results per studio</label>
+                        <input id="DiversityCapPerGroup" name="DiversityCapPerGroup" type="number" is="emby-input" min="0" max="50" />
+                        <div class="fieldDescription">Keeps one franchise or studio from filling the whole list. 0 disables the cap.</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="MinimumCommunityRating">Minimum community rating</label>
+                        <input id="MinimumCommunityRating" name="MinimumCommunityRating" type="number" is="emby-input" min="0" max="10" step="0.1" />
+                        <div class="fieldDescription">0 disables the filter.</div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="IncludeMovies" name="IncludeMovies" type="checkbox" is="emby-checkbox" />
+                            <span>Recommend movies</span>
+                        </label>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="IncludeSeries" name="IncludeSeries" type="checkbox" is="emby-checkbox" />
+                            <span>Recommend series</span>
+                        </label>
+                    </div>
+
+                    <div class="verticalSection">
+                        <h3>Refresh schedule</h3>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="ScheduledRefreshIntervalHours">Scheduled refresh interval (hours)</label>
+                        <input id="ScheduledRefreshIntervalHours" name="ScheduledRefreshIntervalHours" type="number" is="emby-input" min="1" max="168" />
+                        <div class="fieldDescription">Also runs on demand from Dashboard &gt; Scheduled Tasks &gt; Personal Recommendations.</div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="AutoRefreshAfterPlayback" name="AutoRefreshAfterPlayback" type="checkbox" is="emby-checkbox" />
+                            <span>Refresh automatically after playback</span>
+                        </label>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="AutoRefreshDebounceMinutes">Wait this many minutes after the last watched item before refreshing</label>
+                        <input id="AutoRefreshDebounceMinutes" name="AutoRefreshDebounceMinutes" type="number" is="emby-input" min="1" max="60" />
+                    </div>
+
+                    <div>
+                        <button is="emby-button" type="submit" class="raised button-submit block emby-button">
+                            <span>Save</span>
+                        </button>
+                        <button is="emby-button" type="button" id="RefreshNowButton" class="raised block emby-button">
+                            <span>Refresh recommendations now</span>
+                        </button>
+                    </div>
+                    <div id="RefreshStatus" class="fieldDescription"></div>
+                </form>
+            </div>
+        </div>
+        <script type="text/javascript">
+            var PersonalRecommendationsConfig = {
+                pluginUniqueId: '9985ba03-cbb5-4b44-a997-3a141a1232ab'
+            };
+
+            document.querySelector('#PersonalRecommendationsConfigPage')
+                .addEventListener('pageshow', function () {
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(PersonalRecommendationsConfig.pluginUniqueId).then(function (config) {
+                        document.querySelector('#Enabled').checked = config.Enabled;
+                        document.querySelector('#RecommendationLimit').value = config.RecommendationLimit;
+                        document.querySelector('#CollectionNameTemplate').value = config.CollectionNameTemplate;
+                        document.querySelector('#DiversityCapPerGroup').value = config.DiversityCapPerGroup;
+                        document.querySelector('#MinimumCommunityRating').value = config.MinimumCommunityRating;
+                        document.querySelector('#IncludeMovies').checked = config.IncludeMovies;
+                        document.querySelector('#IncludeSeries').checked = config.IncludeSeries;
+                        document.querySelector('#ScheduledRefreshIntervalHours').value = config.ScheduledRefreshIntervalHours;
+                        document.querySelector('#AutoRefreshAfterPlayback').checked = config.AutoRefreshAfterPlayback;
+                        document.querySelector('#AutoRefreshDebounceMinutes').value = config.AutoRefreshDebounceMinutes;
+                        Dashboard.hideLoadingMsg();
+                    });
+                });
+
+            document.querySelector('#PersonalRecommendationsConfigForm')
+                .addEventListener('submit', function (e) {
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(PersonalRecommendationsConfig.pluginUniqueId).then(function (config) {
+                        config.Enabled = document.querySelector('#Enabled').checked;
+                        config.RecommendationLimit = parseInt(document.querySelector('#RecommendationLimit').value, 10);
+                        config.CollectionNameTemplate = document.querySelector('#CollectionNameTemplate').value;
+                        config.DiversityCapPerGroup = parseInt(document.querySelector('#DiversityCapPerGroup').value, 10);
+                        config.MinimumCommunityRating = parseFloat(document.querySelector('#MinimumCommunityRating').value);
+                        config.IncludeMovies = document.querySelector('#IncludeMovies').checked;
+                        config.IncludeSeries = document.querySelector('#IncludeSeries').checked;
+                        config.ScheduledRefreshIntervalHours = parseInt(document.querySelector('#ScheduledRefreshIntervalHours').value, 10);
+                        config.AutoRefreshAfterPlayback = document.querySelector('#AutoRefreshAfterPlayback').checked;
+                        config.AutoRefreshDebounceMinutes = parseInt(document.querySelector('#AutoRefreshDebounceMinutes').value, 10);
+                        ApiClient.updatePluginConfiguration(PersonalRecommendationsConfig.pluginUniqueId, config).then(function (result) {
+                            Dashboard.processPluginConfigurationUpdateResult(result);
+                        });
+                    });
+
+                    e.preventDefault();
+                    return false;
+                });
+
+            document.querySelector('#RefreshNowButton')
+                .addEventListener('click', function () {
+                    var status = document.querySelector('#RefreshStatus');
+                    status.textContent = 'Refreshing…';
+                    ApiClient.ajax({
+                        type: 'POST',
+                        url: ApiClient.getUrl('Recommendations/Refresh')
+                    }).then(function () {
+                        status.textContent = 'Recommendations refreshed for all users.';
+                    }).catch(function () {
+                        status.textContent = 'Refresh failed. Check the server log for details.';
+                    });
+                });
+        </script>
+    </div>
+</body>
+</html>

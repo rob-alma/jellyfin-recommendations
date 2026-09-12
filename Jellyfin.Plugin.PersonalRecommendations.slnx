@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Jellyfin.Plugin.PersonalRecommendations.Core/Jellyfin.Plugin.PersonalRecommendations.Core.csproj" />
+  <Project Path="Jellyfin.Plugin.PersonalRecommendations/Jellyfin.Plugin.PersonalRecommendations.csproj" />
+  <Project Path="Jellyfin.Plugin.PersonalRecommendations.Tests/Jellyfin.Plugin.PersonalRecommendations.Tests.csproj" />
+</Solution>

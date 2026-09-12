@@ -1,0 +1,16 @@
+{
+  "category": "General",
+  "guid": "9985ba03-cbb5-4b44-a997-3a141a1232ab",
+  "name": "PersonalRecommendations",
+  "description": "Builds a per-user taste profile from previously watched movies and series (genres, cast, crew, studios) and maintains a \"Recommended For You\" collection for each user, kept up to date on a schedule and after playback.",
+  "overview": "Personalized recommendations based on watch history",
+  "owner": "robalma7",
+  "targetAbi": "10.11.0.0",
+  "framework": "net9.0",
+  "version": "0.1.0.0",
+  "changelog": "Initial release: per-user taste profiling from watch history, scheduled and playback-triggered recommendation refresh, managed \"Recommended For You\" collection per user, admin API, configuration page.",
+  "artifacts": [
+    "Jellyfin.Plugin.PersonalRecommendations.dll",
+    "Jellyfin.Plugin.PersonalRecommendations.Core.dll"
+  ]
+}
