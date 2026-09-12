@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Jellyfin.Data.Enums;
 using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 
 namespace Jellyfin.Plugin.PersonalRecommendations.Services;
@@ -32,6 +33,12 @@ public sealed class LibrarySnapshot
     /// Gets the series, indexed by id.
     /// </summary>
     public required IReadOnlyDictionary<Guid, BaseItem> SeriesById { get; init; }
+
+    /// <summary>
+    /// Gets each series' episodes, indexed by series id and pre-sorted by season/episode
+    /// number, so callers don't each re-scan the full episode list.
+    /// </summary>
+    public required IReadOnlyDictionary<Guid, IReadOnlyList<Episode>> EpisodesBySeriesId { get; init; }
 }
 
 /// <summary>
@@ -76,12 +83,23 @@ public sealed class LibrarySnapshotProvider
             IsVirtualItem = false
         });
 
+        var episodesBySeriesId = episodes
+            .OfType<Episode>()
+            .GroupBy(e => e.SeriesId)
+            .ToDictionary(
+                g => g.Key,
+                g => (IReadOnlyList<Episode>)g
+                    .OrderBy(e => e.ParentIndexNumber ?? int.MaxValue)
+                    .ThenBy(e => e.IndexNumber ?? int.MaxValue)
+                    .ToList());
+
         return new LibrarySnapshot
         {
             Movies = movies,
             Series = series,
             Episodes = episodes,
-            SeriesById = series.ToDictionary(s => s.Id)
+            SeriesById = series.ToDictionary(s => s.Id),
+            EpisodesBySeriesId = episodesBySeriesId
         };
     }
 }

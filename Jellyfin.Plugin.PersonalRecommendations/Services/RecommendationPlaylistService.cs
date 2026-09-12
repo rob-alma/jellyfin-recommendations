@@ -7,7 +7,6 @@ using Jellyfin.Database.Implementations.Entities;
 using Jellyfin.Plugin.PersonalRecommendations.Configuration;
 using Jellyfin.Plugin.PersonalRecommendations.Domain;
 using MediaBrowser.Controller.Entities;
-using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Controller.Playlists;
 using MediaBrowser.Model.Playlists;
@@ -121,14 +120,7 @@ public sealed class RecommendationPlaylistService
             return candidate.ItemId;
         }
 
-        var episodes = snapshot.Episodes
-            .OfType<Episode>()
-            .Where(e => e.SeriesId == candidate.ItemId)
-            .OrderBy(e => e.ParentIndexNumber ?? int.MaxValue)
-            .ThenBy(e => e.IndexNumber ?? int.MaxValue)
-            .ToList();
-
-        if (episodes.Count == 0)
+        if (!snapshot.EpisodesBySeriesId.TryGetValue(candidate.ItemId, out var episodes) || episodes.Count == 0)
         {
             return null;
         }

@@ -141,14 +141,14 @@
             document.querySelector('#RefreshNowButton')
                 .addEventListener('click', function () {
                     var status = document.querySelector('#RefreshStatus');
-                    status.textContent = 'Refreshing…';
+                    status.textContent = 'Starting refresh…';
                     ApiClient.ajax({
                         type: 'POST',
                         url: ApiClient.getUrl('Recommendations/Refresh')
                     }).then(function () {
-                        status.textContent = 'Recommendations refreshed for all users.';
+                        status.textContent = 'Refresh started in the background - check Dashboard > Scheduled Tasks > Personal Recommendations for progress.';
                     }).catch(function () {
-                        status.textContent = 'Refresh failed. Check the server log for details.';
+                        status.textContent = 'Could not start the refresh. Check the server log for details.';
                     });
                 });
         </script>

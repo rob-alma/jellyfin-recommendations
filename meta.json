@@ -7,8 +7,8 @@
   "owner": "robalma7",
   "targetAbi": "10.11.0.0",
   "framework": "net9.0",
-  "version": "0.2.0.0",
-  "changelog": "0.2.0: Switched from collections to playlists for delivering recommendations — Jellyfin collections ignore per-user visibility, so they were showing up for every user instead of staying private. Playlists have a real owner and are private by default; recommended series are represented by their next unwatched episode so a series doesn't get expanded into every episode. 0.1.0: Initial release.",
+  "version": "0.2.1.0",
+  "changelog": "0.2.1: The config page's \"Refresh now\" button and the admin refresh-all API now queue the refresh as a background task instead of blocking the HTTP request, which was timing out on larger libraries/user counts. 0.2.0: Switched from collections to playlists for delivering recommendations — Jellyfin collections ignore per-user visibility, so they were showing up for every user instead of staying private. Playlists have a real owner and are private by default; recommended series are represented by their next unwatched episode so a series doesn't get expanded into every episode. 0.1.0: Initial release.",
   "artifacts": [
     "Jellyfin.Plugin.PersonalRecommendations.dll",
     "Jellyfin.Plugin.PersonalRecommendations.Core.dll"

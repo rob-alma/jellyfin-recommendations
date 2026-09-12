@@ -4,7 +4,6 @@ using System.Linq;
 using Jellyfin.Database.Implementations.Entities;
 using Jellyfin.Plugin.PersonalRecommendations.Domain;
 using MediaBrowser.Controller.Entities;
-using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 
 namespace Jellyfin.Plugin.PersonalRecommendations.Services;
@@ -64,18 +63,14 @@ public sealed class WatchHistoryReader
         // not on the Series item itself, so series-level watch signal is derived by aggregating
         // its episodes. IsFavorite/Likes/Rating *are* stored directly against the Series item
         // (a user favorites the show itself), so those are still read from the Series row.
-        var episodesBySeries = snapshot.Episodes
-            .OfType<Episode>()
-            .GroupBy(e => e.SeriesId);
-
-        foreach (var group in episodesBySeries)
+        foreach (var (seriesId, seriesEpisodes) in snapshot.EpisodesBySeriesId)
         {
-            if (!snapshot.SeriesById.TryGetValue(group.Key, out var series))
+            if (!snapshot.SeriesById.TryGetValue(seriesId, out var series))
             {
                 continue;
             }
 
-            var episodeUserData = group.Select(e => _userDataManager.GetUserData(user, e) ?? new UserItemData { Key = string.Empty }).ToList();
+            var episodeUserData = seriesEpisodes.Select(e => _userDataManager.GetUserData(user, e) ?? new UserItemData { Key = string.Empty }).ToList();
             var watchedEpisodeCount = episodeUserData.Count(d => d.Played || d.PlayCount > 0);
             if (watchedEpisodeCount == 0)
             {

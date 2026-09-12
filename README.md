@@ -63,10 +63,10 @@ projects target `net8.0`, so `dotnet test` runs without needing the .NET 9 runti
 ## Install via the Jellyfin plugin catalog (recommended)
 
 `.github/workflows/release.yml` builds the plugin, packages it, and publishes a GitHub Release
-containing the plugin zip and a `manifest.json` whenever a tag like `v0.2.0` is pushed (or via
+containing the plugin zip and a `manifest.json` whenever a tag like `v0.2.1` is pushed (or via
 "Run workflow" in the Actions tab).
 
-1. Push a tag, e.g. `git tag v0.2.0 && git push origin v0.2.0`, and wait for the "Release"
+1. Push a tag, e.g. `git tag v0.2.1 && git push origin v0.2.1`, and wait for the "Release"
    workflow to finish (Actions tab).
 2. In Jellyfin, go to **Dashboard → Plugins → Repositories → Add Repository** and add:
    - Repository name: anything, e.g. `Personal Recommendations`
@@ -81,7 +81,7 @@ containing the plugin zip and a `manifest.json` whenever a tag like `v0.2.0` is 
 1. Build in Release mode (above).
 2. Copy these files from `Jellyfin.Plugin.PersonalRecommendations/bin/Release/net9.0/` into a
    new folder under your Jellyfin server's plugin directory, e.g.
-   `<jellyfin-config>/plugins/PersonalRecommendations_0.2.0.0/`:
+   `<jellyfin-config>/plugins/PersonalRecommendations_0.2.1.0/`:
    - `Jellyfin.Plugin.PersonalRecommendations.dll`
    - `Jellyfin.Plugin.PersonalRecommendations.Core.dll`
    - `meta.json`
@@ -95,7 +95,10 @@ containing the plugin zip and a `manifest.json` whenever a tag like `v0.2.0` is 
 2. After restarting, its settings page should appear as its own entry under **Plugins** in the
    left nav (not just the plugin info card) — that's where the actual settings and the
    **Refresh recommendations now** button live.
-3. Either wait for the scheduled task or click **Refresh recommendations now**.
+3. Either wait for the scheduled task or click **Refresh recommendations now**. This queues
+   the refresh as a background task and returns immediately — it doesn't block waiting for
+   every user's recommendations to finish computing, which can take a while on larger
+   libraries. Track progress under Scheduled Tasks (next step).
 4. Check **Dashboard → Scheduled Tasks → Personal Recommendations → Refresh personal
    recommendations** for logs/manual runs.
 5. As a user with some watch history, look for the "Recommended For You" playlist in the main
@@ -123,9 +126,9 @@ All endpoints require an authenticated Jellyfin session/API key.
 
 - `GET /Recommendations/{userId}` — current recommendations for a user, computed on demand
   (does not touch the managed playlist).
-- `POST /Recommendations/Refresh` — refresh recommendations and the managed playlist for
-  every user.
-- `POST /Recommendations/Refresh/{userId}` — refresh for one user.
+- `POST /Recommendations/Refresh` — queues a refresh (Jellyfin's background task queue) of
+  recommendations and the managed playlist for every user, and returns immediately.
+- `POST /Recommendations/Refresh/{userId}` — refresh for one user, also non-blocking.
 
 ## Known limitations
 
