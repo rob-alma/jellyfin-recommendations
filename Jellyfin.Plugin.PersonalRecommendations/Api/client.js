@@ -33,13 +33,13 @@
         .personalRecommendationsScrollButton[hidden] { display: none; }
         .personalRecommendationsRow {
             display: flex; gap: 1em; overflow-x: auto; overflow-y: hidden;
-            scroll-snap-type: x proximity; scroll-behavior: smooth;
+            scroll-behavior: smooth;
             overscroll-behavior-x: contain; touch-action: pan-x;
             padding-bottom: 0.5em; -ms-overflow-style: none; scrollbar-width: none;
         }
         .personalRecommendationsRow::-webkit-scrollbar { display: none; }
         .personalRecommendationsCard {
-            flex: 0 0 auto; width: 150px; scroll-snap-align: start; text-decoration: none; color: inherit;
+            flex: 0 0 auto; width: 150px; text-decoration: none; color: inherit;
         }
         .personalRecommendationsPoster {
             width: 150px; height: 225px; border-radius: 0.2em; background: #202020; overflow: hidden;
