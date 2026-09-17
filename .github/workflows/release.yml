@@ -63,8 +63,9 @@ jobs:
           REPOSITORY_DIR="$(pwd)/artifacts/repository"
           mkdir -p "$PACKAGE_DIR" "$REPOSITORY_DIR"
 
-          cp artifacts/publish/Jellyfin.Plugin.PersonalRecommendations.dll "$PACKAGE_DIR/"
-          cp artifacts/publish/Jellyfin.Plugin.PersonalRecommendations.Core.dll "$PACKAGE_DIR/"
+          # Copy every DLL from the publish output (not just the plugin's own two), so a
+          # runtime dependency like Newtonsoft.Json isn't silently left out of the zip.
+          cp artifacts/publish/*.dll "$PACKAGE_DIR/"
           cp artifacts/publish/meta.json "$PACKAGE_DIR/"
 
           python3 - "$PACKAGE_DIR/meta.json" "$VERSION" <<'PY'

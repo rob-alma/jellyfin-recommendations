@@ -11,14 +11,14 @@ using Microsoft.Extensions.Logging;
 namespace Jellyfin.Plugin.PersonalRecommendations.ScheduledTasks;
 
 /// <summary>
-/// Scheduled task that rebuilds every user's taste profile from watch history and updates
-/// their "Recommended For You" playlist.
+/// Scheduled task that rebuilds every user's taste profile from watch history and refreshes
+/// the recommendation cache the home screen widget and API read from.
 /// </summary>
 public sealed class RecommendationRefreshTask : IScheduledTask
 {
     private readonly IUserManager _userManager;
     private readonly RecommendationEngine _engine;
-    private readonly RecommendationPlaylistService _playlistService;
+    private readonly RecommendationCache _cache;
     private readonly ILogger<RecommendationRefreshTask> _logger;
 
     /// <summary>
@@ -26,17 +26,17 @@ public sealed class RecommendationRefreshTask : IScheduledTask
     /// </summary>
     /// <param name="userManager">Jellyfin's user manager.</param>
     /// <param name="engine">The recommendation engine.</param>
-    /// <param name="playlistService">Updates the managed playlist.</param>
+    /// <param name="cache">The recommendation cache.</param>
     /// <param name="logger">Logger.</param>
     public RecommendationRefreshTask(
         IUserManager userManager,
         RecommendationEngine engine,
-        RecommendationPlaylistService playlistService,
+        RecommendationCache cache,
         ILogger<RecommendationRefreshTask> logger)
     {
         _userManager = userManager;
         _engine = engine;
-        _playlistService = playlistService;
+        _cache = cache;
         _logger = logger;
     }
 
@@ -47,19 +47,19 @@ public sealed class RecommendationRefreshTask : IScheduledTask
     public string Key => "Jellyfin.Plugin.PersonalRecommendations.Refresh";
 
     /// <inheritdoc />
-    public string Description => "Rebuilds each user's taste profile from watch history and updates their \"Recommended For You\" playlist.";
+    public string Description => "Rebuilds each user's taste profile from watch history and refreshes the recommendation cache.";
 
     /// <inheritdoc />
     public string Category => "Personal Recommendations";
 
     /// <inheritdoc />
-    public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
+    public Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
     {
         var config = Plugin.Instance?.Configuration ?? new Configuration.PluginConfiguration();
         if (!config.Enabled)
         {
             _logger.LogInformation("Personal Recommendations is disabled; skipping refresh.");
-            return;
+            return Task.CompletedTask;
         }
 
         var users = _userManager.GetUsers().ToArray();
@@ -73,7 +73,7 @@ public sealed class RecommendationRefreshTask : IScheduledTask
             try
             {
                 var recommendations = _engine.GenerateForUser(user, snapshot, config);
-                await _playlistService.UpdatePlaylistAsync(user, recommendations, snapshot, config, cancellationToken).ConfigureAwait(false);
+                _cache.Set(user.Id, recommendations);
             }
             catch (Exception ex)
             {
@@ -82,6 +82,8 @@ public sealed class RecommendationRefreshTask : IScheduledTask
 
             progress.Report((i + 1) / (double)Math.Max(1, users.Length) * 100);
         }
+
+        return Task.CompletedTask;
     }
 
     /// <inheritdoc />

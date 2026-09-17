@@ -9,16 +9,16 @@ using Microsoft.Extensions.Logging;
 namespace Jellyfin.Plugin.PersonalRecommendations.Services;
 
 /// <summary>
-/// Watches for playback-driven user data changes and refreshes that user's recommendations a
-/// few minutes after their last change, so a binge session triggers one refresh instead of one
-/// per episode.
+/// Watches for playback-driven user data changes and refreshes that user's recommendation
+/// cache a few minutes after their last change, so a binge session triggers one refresh instead
+/// of one per episode.
 /// </summary>
 public sealed class PlaybackChangeMonitor : IHostedService, IDisposable
 {
     private readonly IUserDataManager _userDataManager;
     private readonly IUserManager _userManager;
     private readonly RecommendationEngine _engine;
-    private readonly RecommendationPlaylistService _playlistService;
+    private readonly RecommendationCache _cache;
     private readonly ILogger<PlaybackChangeMonitor> _logger;
     private readonly ConcurrentDictionary<Guid, Timer> _pendingTimers = new();
 
@@ -28,19 +28,19 @@ public sealed class PlaybackChangeMonitor : IHostedService, IDisposable
     /// <param name="userDataManager">Jellyfin's user data manager.</param>
     /// <param name="userManager">Jellyfin's user manager.</param>
     /// <param name="engine">The recommendation engine.</param>
-    /// <param name="playlistService">Updates the managed playlist.</param>
+    /// <param name="cache">The recommendation cache.</param>
     /// <param name="logger">Logger.</param>
     public PlaybackChangeMonitor(
         IUserDataManager userDataManager,
         IUserManager userManager,
         RecommendationEngine engine,
-        RecommendationPlaylistService playlistService,
+        RecommendationCache cache,
         ILogger<PlaybackChangeMonitor> logger)
     {
         _userDataManager = userDataManager;
         _userManager = userManager;
         _engine = engine;
-        _playlistService = playlistService;
+        _cache = cache;
         _logger = logger;
     }
 
@@ -105,11 +105,6 @@ public sealed class PlaybackChangeMonitor : IHostedService, IDisposable
             timer.Dispose();
         }
 
-        _ = RunRefreshAsync(userId);
-    }
-
-    private async Task RunRefreshAsync(Guid userId)
-    {
         try
         {
             var user = _userManager.GetUserById(userId);
@@ -121,7 +116,7 @@ public sealed class PlaybackChangeMonitor : IHostedService, IDisposable
             var config = Plugin.Instance!.Configuration;
             var snapshot = _engine.GetSnapshot();
             var recommendations = _engine.GenerateForUser(user, snapshot, config);
-            await _playlistService.UpdatePlaylistAsync(user, recommendations, snapshot, config, CancellationToken.None).ConfigureAwait(false);
+            _cache.Set(user.Id, recommendations);
         }
         catch (Exception ex)
         {

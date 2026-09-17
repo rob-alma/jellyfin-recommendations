@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using Jellyfin.Plugin.PersonalRecommendations.Configuration;
+using Jellyfin.Plugin.PersonalRecommendations.Helpers;
 using MediaBrowser.Common.Configuration;
 using MediaBrowser.Common.Plugins;
 using MediaBrowser.Model.Plugins;
@@ -34,7 +35,7 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
     public override string Name => "Personal Recommendations";
 
     /// <inheritdoc />
-    public override string Description => "Personalized, private \"Recommended For You\" playlists built from each user's watch history.";
+    public override string Description => "A \"Recommended For You\" home screen widget built from each user's watch history.";
 
     /// <inheritdoc />
     public override Guid Id => PluginGuid;
@@ -62,5 +63,19 @@ public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages
                 MenuIcon = "auto_awesome"
             }
         ];
+    }
+
+    /// <inheritdoc />
+    public override void OnUninstalling()
+    {
+        // Best-effort: if the widget script was patched directly into index.html, try to
+        // remove it so uninstalling the plugin doesn't leave a dead <script> tag behind.
+        var method = FrontendInjectionMethods.Normalize(Configuration.FrontendInjectionMethod);
+        if (method is FrontendInjectionMethods.Direct or FrontendInjectionMethods.Automatic)
+        {
+            DirectScriptInjector.TryRemove(ApplicationPaths, Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance);
+        }
+
+        base.OnUninstalling();
     }
 }

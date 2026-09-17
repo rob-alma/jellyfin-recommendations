@@ -5,13 +5,13 @@
     <title>Personal Recommendations</title>
 </head>
 <body>
-    <div id="PersonalRecommendationsConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-checkbox">
+    <div id="PersonalRecommendationsConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-checkbox,emby-select">
         <div data-role="content">
             <div class="content-primary">
                 <form id="PersonalRecommendationsConfigForm">
                     <div class="verticalSection">
                         <h2>Personal Recommendations</h2>
-                        <p>Builds a per-user taste profile from watch history (genres, cast, crew, studios) and keeps a private "Recommended For You" playlist up to date for every user.</p>
+                        <p>Builds a per-user taste profile from watch history (genres, cast, crew, studios) and shows a "Recommended For You" row on the home screen for every user.</p>
                     </div>
 
                     <div class="checkboxContainer checkboxContainer-withDescription">
@@ -24,12 +24,6 @@
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="RecommendationLimit">Recommendations per user</label>
                         <input id="RecommendationLimit" name="RecommendationLimit" type="number" is="emby-input" min="1" max="200" />
-                    </div>
-
-                    <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="PlaylistNameTemplate">Playlist name</label>
-                        <input id="PlaylistNameTemplate" name="PlaylistNameTemplate" type="text" is="emby-input" />
-                        <div class="fieldDescription">Use <code>{username}</code> to include the user's name.</div>
                     </div>
 
                     <div class="inputContainer">
@@ -56,6 +50,38 @@
                             <input id="IncludeSeries" name="IncludeSeries" type="checkbox" is="emby-checkbox" />
                             <span>Recommend series</span>
                         </label>
+                    </div>
+
+                    <div class="verticalSection">
+                        <h3>Home screen widget</h3>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="HomeScreenWidgetEnabled" name="HomeScreenWidgetEnabled" type="checkbox" is="emby-checkbox" />
+                            <span>Show the widget on the home screen</span>
+                        </label>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="WidgetHeading">Widget heading</label>
+                        <input id="WidgetHeading" name="WidgetHeading" type="text" is="emby-input" />
+                    </div>
+
+                    <div class="selectContainer">
+                        <label class="selectLabel" for="FrontendInjectionMethod">Frontend injection method</label>
+                        <select is="emby-select" id="FrontendInjectionMethod" name="FrontendInjectionMethod" class="emby-select-withcolor emby-select">
+                            <option value="automatic">Automatic (recommended)</option>
+                            <option value="file-transformation">File Transformation plugin</option>
+                            <option value="javascript-injector">JavaScript Injector plugin</option>
+                            <option value="direct">Direct (patch jellyfin-web/index.html)</option>
+                            <option value="disabled">Disabled</option>
+                        </select>
+                        <div class="fieldDescription">
+                            How the widget's script gets loaded into the web client. Automatic tries the File
+                            Transformation and JavaScript Injector plugins first (if installed), then falls back to
+                            patching index.html directly. Changing this takes effect after a server restart.
+                        </div>
                     </div>
 
                     <div class="verticalSection">
@@ -103,11 +129,13 @@
                     ApiClient.getPluginConfiguration(PersonalRecommendationsConfig.pluginUniqueId).then(function (config) {
                         document.querySelector('#Enabled').checked = config.Enabled;
                         document.querySelector('#RecommendationLimit').value = config.RecommendationLimit;
-                        document.querySelector('#PlaylistNameTemplate').value = config.PlaylistNameTemplate;
                         document.querySelector('#DiversityCapPerGroup').value = config.DiversityCapPerGroup;
                         document.querySelector('#MinimumCommunityRating').value = config.MinimumCommunityRating;
                         document.querySelector('#IncludeMovies').checked = config.IncludeMovies;
                         document.querySelector('#IncludeSeries').checked = config.IncludeSeries;
+                        document.querySelector('#HomeScreenWidgetEnabled').checked = config.HomeScreenWidgetEnabled;
+                        document.querySelector('#WidgetHeading').value = config.WidgetHeading;
+                        document.querySelector('#FrontendInjectionMethod').value = config.FrontendInjectionMethod;
                         document.querySelector('#ScheduledRefreshIntervalHours').value = config.ScheduledRefreshIntervalHours;
                         document.querySelector('#AutoRefreshAfterPlayback').checked = config.AutoRefreshAfterPlayback;
                         document.querySelector('#AutoRefreshDebounceMinutes').value = config.AutoRefreshDebounceMinutes;
@@ -121,11 +149,13 @@
                     ApiClient.getPluginConfiguration(PersonalRecommendationsConfig.pluginUniqueId).then(function (config) {
                         config.Enabled = document.querySelector('#Enabled').checked;
                         config.RecommendationLimit = parseInt(document.querySelector('#RecommendationLimit').value, 10);
-                        config.PlaylistNameTemplate = document.querySelector('#PlaylistNameTemplate').value;
                         config.DiversityCapPerGroup = parseInt(document.querySelector('#DiversityCapPerGroup').value, 10);
                         config.MinimumCommunityRating = parseFloat(document.querySelector('#MinimumCommunityRating').value);
                         config.IncludeMovies = document.querySelector('#IncludeMovies').checked;
                         config.IncludeSeries = document.querySelector('#IncludeSeries').checked;
+                        config.HomeScreenWidgetEnabled = document.querySelector('#HomeScreenWidgetEnabled').checked;
+                        config.WidgetHeading = document.querySelector('#WidgetHeading').value;
+                        config.FrontendInjectionMethod = document.querySelector('#FrontendInjectionMethod').value;
                         config.ScheduledRefreshIntervalHours = parseInt(document.querySelector('#ScheduledRefreshIntervalHours').value, 10);
                         config.AutoRefreshAfterPlayback = document.querySelector('#AutoRefreshAfterPlayback').checked;
                         config.AutoRefreshDebounceMinutes = parseInt(document.querySelector('#AutoRefreshDebounceMinutes').value, 10);

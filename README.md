@@ -1,7 +1,7 @@
 # Personal Recommendations for Jellyfin
 
 A Jellyfin server plugin that builds a per-user taste profile from watch history (genres,
-cast, crew, studios, decade) and maintains a private **"Recommended For You"** playlist for
+cast, crew, studios, decade) and shows a **"Recommended For You"** row on the home screen for
 each user — no external services, no API keys, nothing but your own library and watch history.
 
 Targets **Jellyfin 10.11.x** (builds against `Jellyfin.Controller`/`Jellyfin.Model` 10.11.11, .NET 9).
@@ -14,39 +14,60 @@ Targets **Jellyfin 10.11.x** (builds against `Jellyfin.Controller`/`Jellyfin.Mod
 2. It builds a weighted taste profile from genres, directors, top-billed actors, studios, and
    decade, with older activity decaying gradually rather than disappearing.
 3. Every unwatched movie/series in the library is scored against that profile.
-4. The top results (capped so one studio/franchise can't dominate the list) become the user's
-   "Recommended For You" playlist, kept up to date by a scheduled task (default every 6 hours)
-   and, optionally, a debounced refresh shortly after the user finishes watching something.
-   A recommended series is represented in the playlist by its next unwatched episode rather
-   than the series itself — see "Why a playlist, not a collection" below for why.
+4. The top results (capped so one studio/franchise can't dominate the list) are cached per user,
+   kept up to date by a scheduled task (default every 6 hours) and, optionally, a debounced
+   refresh shortly after the user finishes watching something.
 5. A user with no watch history yet gets a cold-start fallback: the highest community-rated
    unwatched titles.
+6. A small script injected into the Jellyfin web client reads those recommendations for the
+   logged-in user and renders a "Recommended For You" row on the home screen — movies and
+   series shown as themselves (real posters, real detail pages), clicking the heading opens the
+   full list. See "How the widget gets onto the home screen" below for how that injection works
+   and what it depends on.
 
-## Why a playlist, not a collection
+## How the widget gets onto the home screen
 
-The first version of this plugin used Jellyfin **collections** for this, matching a common
-pattern in other Jellyfin recommendation plugins. That turned out to be wrong: Jellyfin's
-`ICollectionManager.CreateCollectionAsync` completely ignores the per-user `UserIds` option —
-a collection created that way is a normal, globally shared collection, visible to *every* user,
-not just the one it was generated for. For a plugin whose whole point is *personal*
-recommendations, that's a real privacy bug, not a cosmetic one.
+Jellyfin has no first-party way for a server plugin to add a row to the home screen — there's no
+supported API for it. The technique every plugin that does this (including
+[Editor's Choice](https://github.com/lachlandcp/jellyfin-editors-choice-plugin), which is what
+this was modeled on) actually uses is injecting a `<script>` tag into the web client's served
+`index.html`. That script then does its own DOM work in the browser. This plugin tries, in
+order (configurable under **Home screen widget → Frontend injection method**):
 
-**Playlists** don't have this problem — a Jellyfin playlist has a real `OwnerUserId` and is only
-visible to its owner (and anyone explicitly shared with), which is exactly what's needed here.
+1. The community **[File Transformation](https://github.com/IAmParadox27/jellyfin-plugin-file-transformation)**
+   plugin, if installed — registers a callback that patches `index.html` as Jellyfin serves it.
+2. The community **[JavaScript Injector](https://github.com/n00bcodr/Jellyfin-JavaScript-Injector)**
+   plugin, if installed — same idea, different plugin.
+3. **Direct**: patches `jellyfin-web/index.html` on disk itself, re-applied on every server
+   start (so it survives Jellyfin updates that overwrite the file). This needs the Jellyfin
+   server process to have write access to its own web files — usually fine, but see Editor's
+   Choice's README for the Docker/permissions caveats if it doesn't seem to take effect (same
+   underlying mechanism, same failure modes).
 
-The trade-off: playlists are flat, playable-item lists. Adding a Series to a playlist makes
-Jellyfin silently expand it into *every one of its episodes* — 20 recommendations could balloon
-into hundreds of playlist entries. To avoid that, a recommended series is added to the playlist
-as its next unwatched episode (S1E1 if nothing's been watched yet), which keeps it to one entry
-per recommendation and doubles as "here's where to jump in."
+Neither helper plugin is required — "Automatic" (the default) falls through to direct injection
+if neither is installed, and that's proven to work in a plain Jellyfin Docker setup (that's
+literally how Editor's Choice's own hero banner renders without either helper plugin present).
+
+This is inherently a bit more fragile than a normal server-side feature: it depends on finding
+specific elements in Jellyfin's home page DOM (`#indexPage`, `#homeTab`, `.homeSectionsContainer`)
+that aren't a documented, stable plugin surface. If a future Jellyfin web client update changes
+that structure, the row may stop appearing until this plugin is updated to match — same risk
+Editor's Choice itself carries.
+
+**Also only works in the web client and apps built on it** (browser, PWA, the official Android/
+iOS apps) — it can't appear in Infuse, Android TV, or other native clients, because there's no
+script for them to run. Versions up to 0.2.1 tried to work around this with a private playlist,
+which every client can see — but Jellyfin silently expands a Series added to a playlist into
+every one of its episodes, so a recommended series never actually showed up as itself. 0.3.0
+drops that approach entirely in favor of the widget, which doesn't have that limitation.
 
 ## Project layout
 
 - `Jellyfin.Plugin.PersonalRecommendations.Core/` — the pure scoring/profile-building logic.
   No Jellyfin dependency, so it's plain unit-testable.
 - `Jellyfin.Plugin.PersonalRecommendations/` — the actual Jellyfin plugin: reads watch history
-  and the library via Jellyfin's APIs, manages the per-user playlist, exposes the scheduled
-  task, the config page, and the admin API.
+  and the library via Jellyfin's APIs, maintains the recommendation cache, the scheduled tasks,
+  the config page, the admin API, and the home screen widget's server-side injection + script.
 - `Jellyfin.Plugin.PersonalRecommendations.Tests/` — unit tests for the `Core` project.
 
 ## Build
@@ -63,10 +84,10 @@ projects target `net8.0`, so `dotnet test` runs without needing the .NET 9 runti
 ## Install via the Jellyfin plugin catalog (recommended)
 
 `.github/workflows/release.yml` builds the plugin, packages it, and publishes a GitHub Release
-containing the plugin zip and a `manifest.json` whenever a tag like `v0.2.1` is pushed (or via
+containing the plugin zip and a `manifest.json` whenever a tag like `v0.3.0` is pushed (or via
 "Run workflow" in the Actions tab).
 
-1. Push a tag, e.g. `git tag v0.2.1 && git push origin v0.2.1`, and wait for the "Release"
+1. Push a tag, e.g. `git tag v0.3.0 && git push origin v0.3.0`, and wait for the "Release"
    workflow to finish (Actions tab).
 2. In Jellyfin, go to **Dashboard → Plugins → Repositories → Add Repository** and add:
    - Repository name: anything, e.g. `Personal Recommendations`
@@ -78,12 +99,12 @@ containing the plugin zip and a `manifest.json` whenever a tag like `v0.2.1` is 
 
 ## Install manually (no GitHub needed)
 
-1. Build in Release mode (above).
-2. Copy these files from `Jellyfin.Plugin.PersonalRecommendations/bin/Release/net9.0/` into a
-   new folder under your Jellyfin server's plugin directory, e.g.
-   `<jellyfin-config>/plugins/PersonalRecommendations_0.2.1.0/`:
+1. Build in Release mode (above), or `dotnet publish Jellyfin.Plugin.PersonalRecommendations -c Release -o out`.
+2. Copy every `.dll` from the publish/build output plus `meta.json` into a new folder under your
+   Jellyfin server's plugin directory, e.g. `<jellyfin-config>/plugins/PersonalRecommendations_0.3.0.0/`:
    - `Jellyfin.Plugin.PersonalRecommendations.dll`
    - `Jellyfin.Plugin.PersonalRecommendations.Core.dll`
+   - `Newtonsoft.Json.dll` (a runtime dependency — don't skip it, the plugin won't load without it)
    - `meta.json`
 3. Restart Jellyfin.
 
@@ -91,18 +112,23 @@ containing the plugin zip and a `manifest.json` whenever a tag like `v0.2.1` is 
 
 1. Check **Dashboard → Plugins** — "Personal Recommendations" should be listed and enabled.
    A freshly (re)installed plugin shows **Status: Restart** — it isn't actually loaded (no
-   config page, no scheduled task) until you restart the server.
+   config page, no scheduled tasks, no widget registration) until you restart the server.
 2. After restarting, its settings page should appear as its own entry under **Plugins** in the
    left nav (not just the plugin info card) — that's where the actual settings and the
    **Refresh recommendations now** button live.
-3. Either wait for the scheduled task or click **Refresh recommendations now**. This queues
-   the refresh as a background task and returns immediately — it doesn't block waiting for
-   every user's recommendations to finish computing, which can take a while on larger
-   libraries. Track progress under Scheduled Tasks (next step).
-4. Check **Dashboard → Scheduled Tasks → Personal Recommendations → Refresh personal
-   recommendations** for logs/manual runs.
-5. As a user with some watch history, look for the "Recommended For You" playlist in the main
-   Jellyfin web/app UI (not the admin dashboard) under Playlists.
+3. Check **Dashboard → Logs** for a line from `FrontendRegistrationStartupTask`/
+   `DirectScriptInjector` confirming the widget script was registered (or a warning if it
+   couldn't be — see "How the widget gets onto the home screen" above for why that might happen).
+4. Either wait for the scheduled task or click **Refresh recommendations now**. This queues the
+   refresh as a background task and returns immediately.
+5. Check **Dashboard → Scheduled Tasks → Personal Recommendations** for the refresh task's and
+   the widget registration task's logs/manual runs.
+6. Load the Jellyfin home screen (not the admin dashboard) as a user with some watch history —
+   a "Recommended For You" row should appear; clicking its heading opens the full list.
+
+If you're upgrading from 0.1.0–0.2.1: the playlist those versions created is removed
+automatically on the first startup after updating (check the log for
+`LegacyPlaylistCleanupService` to confirm) — nothing to do manually.
 
 ## Configuration
 
@@ -112,33 +138,37 @@ Available on the plugin's settings page (Dashboard → Plugins → Personal Reco
 |---|---|---|
 | Enabled | on | |
 | Recommendations per user | 20 | |
-| Playlist name | `Recommended For You` | supports `{username}` |
 | Max results per studio | 3 | 0 disables the cap |
 | Minimum community rating | 0 (off) | |
 | Recommend movies / series | both on | |
+| Show the widget on the home screen | on | |
+| Widget heading | `Recommended For You` | |
+| Frontend injection method | Automatic | see "How the widget gets onto the home screen" |
 | Scheduled refresh interval | 6 hours | also runnable on demand |
 | Refresh automatically after playback | on | debounced |
 | Auto-refresh debounce | 3 minutes | wait this long after the last watched item |
 
 ## API
 
-All endpoints require an authenticated Jellyfin session/API key.
-
-- `GET /Recommendations/{userId}` — current recommendations for a user, computed on demand
-  (does not touch the managed playlist).
-- `POST /Recommendations/Refresh` — queues a refresh (Jellyfin's background task queue) of
-  recommendations and the managed playlist for every user, and returns immediately.
-- `POST /Recommendations/Refresh/{userId}` — refresh for one user, also non-blocking.
+- `GET /Recommendations/{userId}` — current recommendations for a user (served from cache,
+  computed and cached on a miss). Requires an authenticated Jellyfin session/API key. This is
+  what the home screen widget itself calls.
+- `POST /Recommendations/Refresh` — queues a cache refresh for every user on Jellyfin's
+  background task queue and returns immediately. Requires authentication.
+- `GET /PersonalRecommendations/script` — the widget's client script. Deliberately
+  unauthenticated (it's loaded via a bare `<script src>` before any session exists); the data it
+  goes on to fetch is still authenticated as normal.
 
 ## Known limitations
 
 - Recommendations are drawn only from your existing library — this plugin doesn't discover or
   suggest content you don't already have (that's a different kind of plugin, e.g. one that
   integrates with the *arr stack).
-- A recommended series shows up as its next unwatched episode, not the series itself (see "Why
-  a playlist, not a collection" above).
+- The home screen widget only works in the web client and apps built on it — see "How the
+  widget gets onto the home screen" above.
 - Verified by building against the real `Jellyfin.Controller`/`Jellyfin.Model` 10.11.11
   packages, unit-testing the scoring logic, and confirming on a real Jellyfin 10.11.11 server
-  that recommendations generate correctly (20 items from 1922 candidates on a real library) —
-  the collection-vs-playlist privacy issue above was itself found this way, after the 0.1.0
-  release, and fixed in 0.2.0.
+  that recommendations generate correctly. The DOM injection/rendering itself can't be tested
+  from this project's dev environment (no browser, no live server) — it's built directly from
+  Editor's Choice's proven, working source rather than guessed, but the first real-server check
+  after installing 0.3.0 is still the actual test of that part.

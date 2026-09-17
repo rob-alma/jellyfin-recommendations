@@ -16,7 +16,6 @@ public class PluginConfiguration : BasePluginConfiguration
     {
         Enabled = true;
         RecommendationLimit = 20;
-        PlaylistNameTemplate = "Recommended For You";
         ScheduledRefreshIntervalHours = 6;
         AutoRefreshAfterPlayback = true;
         AutoRefreshDebounceMinutes = 3;
@@ -24,6 +23,9 @@ public class PluginConfiguration : BasePluginConfiguration
         IncludeSeries = true;
         MinimumCommunityRating = 0;
         DiversityCapPerGroup = 3;
+        HomeScreenWidgetEnabled = true;
+        FrontendInjectionMethod = FrontendInjectionMethods.Automatic;
+        WidgetHeading = "Recommended For You";
         PlaylistMappings = new List<UserPlaylistMapping>();
     }
 
@@ -36,11 +38,6 @@ public class PluginConfiguration : BasePluginConfiguration
     /// Gets or sets the maximum number of recommendations to keep per user.
     /// </summary>
     public int RecommendationLimit { get; set; }
-
-    /// <summary>
-    /// Gets or sets the playlist name template. Supports the <c>{username}</c> placeholder.
-    /// </summary>
-    public string PlaylistNameTemplate { get; set; }
 
     /// <summary>
     /// Gets or sets the scheduled refresh interval, in hours.
@@ -80,14 +77,33 @@ public class PluginConfiguration : BasePluginConfiguration
     public int DiversityCapPerGroup { get; set; }
 
     /// <summary>
-    /// Gets or sets the per-user managed playlist ids, so refreshes update the same playlist
-    /// instead of creating a new one every time.
+    /// Gets or sets a value indicating whether the "Recommended For You" home screen widget is enabled.
+    /// </summary>
+    public bool HomeScreenWidgetEnabled { get; set; }
+
+    /// <summary>
+    /// Gets or sets which mechanism is used to inject the widget's script into the web client.
+    /// One of <see cref="FrontendInjectionMethods"/>.
+    /// </summary>
+    public string FrontendInjectionMethod { get; set; }
+
+    /// <summary>
+    /// Gets or sets the heading shown above the widget's row.
+    /// </summary>
+    public string WidgetHeading { get; set; }
+
+    /// <summary>
+    /// Gets or sets the per-user playlist ids created by versions up to 0.2.1, before
+    /// recommendations were delivered as a home screen widget instead of a playlist. Read once
+    /// by <see cref="Services.LegacyPlaylistCleanupService"/> to remove those playlists, then
+    /// always empty. The property name must not change: Jellyfin's XML config serializer
+    /// matches by name, and renaming it would silently lose the ids of playlists to clean up.
     /// </summary>
     public List<UserPlaylistMapping> PlaylistMappings { get; set; }
 }
 
 /// <summary>
-/// Tracks which Jellyfin playlist the plugin created for a given user.
+/// Tracks a playlist created by a pre-0.3.0 version of the plugin, for one-time cleanup.
 /// </summary>
 public class UserPlaylistMapping
 {
@@ -97,7 +113,7 @@ public class UserPlaylistMapping
     public Guid UserId { get; set; }
 
     /// <summary>
-    /// Gets or sets the managed playlist id.
+    /// Gets or sets the playlist id.
     /// </summary>
     public Guid PlaylistId { get; set; }
 }
