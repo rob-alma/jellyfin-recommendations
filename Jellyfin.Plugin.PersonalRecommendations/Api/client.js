@@ -13,6 +13,7 @@
     const warn = (...args) => console.warn(LOG_PREFIX, ...args);
     const initializingContainers = new WeakSet();
     const initializedContainers = new WeakSet();
+    let lastLoggedDiagnosticState = null;
 
     const STYLE = `
         .personalRecommendationsSection { padding: 0 max(env(safe-area-inset-left), 3.3%) 1.8em; }
@@ -170,12 +171,26 @@
     }
 
     async function setup() {
-        log(
-            "setup() running; #homeTab count:", document.querySelectorAll("#homeTab").length,
-            "#homeTab.is-active count:", document.querySelectorAll("#homeTab.is-active").length,
-            ".homeSectionsContainer count:", document.querySelectorAll(".homeSectionsContainer").length,
-            "matching containers:", document.querySelectorAll(HOME_CONTAINER_SELECTOR).length
-        );
+        const diagnosticState = [
+            document.querySelectorAll("#homeTab").length,
+            document.querySelectorAll("#homeTab.is-active").length,
+            document.querySelectorAll(".homeSectionsContainer").length,
+            document.querySelectorAll(HOME_CONTAINER_SELECTOR).length
+        ].join(",");
+
+        // The observer reacts to any DOM/class change in body (see initialize()), which fires
+        // often; only log when the counts actually changed so the console doesn't flood with
+        // identical "nothing new" lines once things have settled.
+        if (diagnosticState !== lastLoggedDiagnosticState) {
+            lastLoggedDiagnosticState = diagnosticState;
+            const [homeTabCount, activeHomeTabCount, sectionsContainerCount, matchingCount] = diagnosticState.split(",");
+            log(
+                "setup() running; #homeTab count:", homeTabCount,
+                "#homeTab.is-active count:", activeHomeTabCount,
+                ".homeSectionsContainer count:", sectionsContainerCount,
+                "matching containers:", matchingCount
+            );
+        }
 
         const containers = Array.from(document.querySelectorAll(HOME_CONTAINER_SELECTOR)).filter((element) => {
             if (element.querySelector(":scope > .personalRecommendationsSection")) {
@@ -192,7 +207,6 @@
         });
 
         if (!containers.length) {
-            log("no new container to initialize (none found, or already initialized/in progress).");
             return;
         }
 
@@ -261,14 +275,6 @@
         });
     }
 
-    function nodeContainsHomeContainer(node) {
-        if (!(node instanceof Element)) {
-            return false;
-        }
-
-        return node.matches(HOME_CONTAINER_SELECTOR) || !!node.querySelector(HOME_CONTAINER_SELECTOR);
-    }
-
     function initialize() {
         log("client script loaded, initializing.");
 
@@ -278,24 +284,14 @@
             return;
         }
 
-        const observer = new MutationObserver((mutations) => {
-            for (const mutation of mutations) {
-                if (mutation.type === "attributes") {
-                    const element = mutation.target;
-                    if (element instanceof Element && element.matches("#indexPage, #homeTab")) {
-                        scheduleSetup();
-                        return;
-                    }
-                }
-
-                for (const node of mutation.addedNodes) {
-                    if (nodeContainsHomeContainer(node)) {
-                        scheduleSetup();
-                        return;
-                    }
-                }
-            }
-        });
+        // Deliberately broad: earlier versions only re-checked on mutations to specific nodes
+        // (#indexPage/#homeTab) or newly-added nodes matching the container selector, and that
+        // missed the actual moment .homeSectionsContainer appears on a confirmed 10.11.11 build
+        // (it's added - or gains its class - deeper in a React-rendered subtree, after #homeTab
+        // itself already exists). scheduleSetup() is requestAnimationFrame-debounced and setup()
+        // itself is cheap when nothing new is found, so reacting to any DOM/class churn in body
+        // is safe and far more reliable than trying to be clever about which mutation matters.
+        const observer = new MutationObserver(() => scheduleSetup());
 
         observer.observe(target, {
             attributes: true,
