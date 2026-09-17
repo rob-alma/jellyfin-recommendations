@@ -13,16 +13,28 @@
 
     const STYLE = `
         .personalRecommendationsSection { padding: 0 max(env(safe-area-inset-left), 3.3%) 1.8em; }
+        .personalRecommendationsHeaderBar {
+            display: flex; align-items: center; justify-content: space-between; padding: 0 0 0.5em;
+        }
         .personalRecommendationsHeading {
             display: inline-flex; align-items: center; gap: 0.35em;
             background: none; border: none; color: inherit; cursor: pointer;
-            font-size: 1.3em; font-weight: 600; padding: 0 0 0.5em; margin: 0;
+            font-size: 1.3em; font-weight: 600; padding: 0; margin: 0;
         }
         .personalRecommendationsHeading:hover { color: #00a4dc; }
         .personalRecommendationsHeading .material-icons { font-size: 0.8em; }
+        .personalRecommendationsScrollButtons { display: flex; gap: 0.4em; flex: none; }
+        .personalRecommendationsScrollButton {
+            background: rgba(255, 255, 255, 0.08); border: none; color: inherit; cursor: pointer;
+            width: 2.2em; height: 2.2em; border-radius: 50%; display: flex; align-items: center;
+            justify-content: center; transition: background 0.15s ease;
+        }
+        .personalRecommendationsScrollButton:hover { background: rgba(255, 255, 255, 0.18); }
+        .personalRecommendationsScrollButton[hidden] { display: none; }
         .personalRecommendationsRow {
             display: flex; gap: 1em; overflow-x: auto; overflow-y: hidden;
-            scroll-snap-type: x proximity; padding-bottom: 0.5em; -ms-overflow-style: none; scrollbar-width: none;
+            scroll-snap-type: x proximity; scroll-behavior: smooth;
+            padding-bottom: 0.5em; -ms-overflow-style: none; scrollbar-width: none;
         }
         .personalRecommendationsRow::-webkit-scrollbar { display: none; }
         .personalRecommendationsCard {
@@ -147,9 +159,40 @@
         document.body.appendChild(overlay);
     }
 
+    function buildScrollButton(direction) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "personalRecommendationsScrollButton";
+        button.setAttribute("aria-label", direction === "left" ? "Scroll left" : "Scroll right");
+        button.innerHTML = `<span class="material-icons chevron_${direction}" aria-hidden="true"></span>`;
+        return button;
+    }
+
+    function wireScrollButtons(row, scrollButtons, leftButton, rightButton) {
+        const updateVisibility = () => {
+            const hasOverflow = row.scrollWidth > row.clientWidth + 1;
+            scrollButtons.hidden = !hasOverflow;
+            if (!hasOverflow) {
+                return;
+            }
+
+            leftButton.hidden = row.scrollLeft <= 0;
+            rightButton.hidden = row.scrollLeft + row.clientWidth >= row.scrollWidth - 1;
+        };
+
+        leftButton.addEventListener("click", () => row.scrollBy({ left: -row.clientWidth * 0.9, behavior: "smooth" }));
+        rightButton.addEventListener("click", () => row.scrollBy({ left: row.clientWidth * 0.9, behavior: "smooth" }));
+        row.addEventListener("scroll", updateVisibility, { passive: true });
+        window.addEventListener("resize", updateVisibility);
+        updateVisibility();
+    }
+
     function renderSection(container, items, heading, baseUrl) {
         const section = document.createElement("div");
         section.className = "personalRecommendationsSection";
+
+        const headerBar = document.createElement("div");
+        headerBar.className = "personalRecommendationsHeaderBar";
 
         const headingButton = document.createElement("button");
         headingButton.type = "button";
@@ -157,13 +200,25 @@
         headingButton.innerHTML = `${heading} <span class="material-icons chevron_right" aria-hidden="true"></span>`;
         headingButton.addEventListener("click", () => openOverlay(items, heading, baseUrl));
 
+        const scrollButtons = document.createElement("div");
+        scrollButtons.className = "personalRecommendationsScrollButtons";
+        const leftButton = buildScrollButton("left");
+        const rightButton = buildScrollButton("right");
+        scrollButtons.appendChild(leftButton);
+        scrollButtons.appendChild(rightButton);
+
+        headerBar.appendChild(headingButton);
+        headerBar.appendChild(scrollButtons);
+
         const row = document.createElement("div");
         row.className = "personalRecommendationsRow";
         items.forEach((item) => row.appendChild(buildCard(item, baseUrl)));
 
-        section.appendChild(headingButton);
+        section.appendChild(headerBar);
         section.appendChild(row);
         container.prepend(section);
+
+        wireScrollButtons(row, scrollButtons, leftButton, rightButton);
     }
 
     async function setup() {
