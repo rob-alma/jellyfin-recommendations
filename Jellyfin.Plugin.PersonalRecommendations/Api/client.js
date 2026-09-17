@@ -53,7 +53,7 @@
             background: none; border: none; color: inherit; cursor: pointer; font-size: 1.6em; line-height: 1;
         }
         .personalRecommendationsGrid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1.2em;
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 1.2em;
         }
     `;
 
