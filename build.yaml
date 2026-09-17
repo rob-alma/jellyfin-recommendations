@@ -1,7 +1,7 @@
 ---
 name: "PersonalRecommendations"
 guid: "9985ba03-cbb5-4b44-a997-3a141a1232ab"
-version: "0.3.0.0"
+version: "0.3.1.0"
 targetAbi: "10.11.0.0"
 framework: "net9.0"
 overview: "Personalized recommendations based on watch history"
@@ -17,6 +17,10 @@ artifacts:
 - "Jellyfin.Plugin.PersonalRecommendations.Core.dll"
 - "Newtonsoft.Json.dll"
 changelog: >
+  0.3.1: The widget's client script now logs its steps to the browser
+  console (prefixed [PersonalRecommendations]) and uses a more robust
+  home-screen container selector - needed on at least one confirmed
+  10.11.11 build where the home tab renders nested inside a React root.
   0.3.0: Replaced the private playlist with a "Recommended For You" home
   screen widget (web/app clients) - series now show as themselves instead of
   their next unwatched episode. Existing pre-0.3.0 playlists are

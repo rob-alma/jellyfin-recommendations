@@ -2,7 +2,15 @@
     "use strict";
 
     const PLUGIN_ID = "9985ba03-cbb5-4b44-a997-3a141a1232ab";
-    const HOME_CONTAINER_SELECTOR = "#indexPage:not(.hide) #homeTab.is-active .homeSectionsContainer";
+    // Deliberately not anchored on "#indexPage:not(.hide)" as well: on at least one confirmed
+    // 10.11.11 build, the home tab markup (#homeTab.is-active > .homeSectionsContainer) is
+    // nested inside a React-rendered #reactRoot subtree, and #indexPage's exact presence/hide
+    // state there is unconfirmed. #homeTab.is-active is specific enough on its own to mean
+    // "the currently visible home tab".
+    const HOME_CONTAINER_SELECTOR = "#homeTab.is-active .homeSectionsContainer";
+    const LOG_PREFIX = "[PersonalRecommendations]";
+    const log = (...args) => console.log(LOG_PREFIX, ...args);
+    const warn = (...args) => console.warn(LOG_PREFIX, ...args);
     const initializingContainers = new WeakSet();
     const initializedContainers = new WeakSet();
 
@@ -162,6 +170,13 @@
     }
 
     async function setup() {
+        log(
+            "setup() running; #homeTab count:", document.querySelectorAll("#homeTab").length,
+            "#homeTab.is-active count:", document.querySelectorAll("#homeTab.is-active").length,
+            ".homeSectionsContainer count:", document.querySelectorAll(".homeSectionsContainer").length,
+            "matching containers:", document.querySelectorAll(HOME_CONTAINER_SELECTOR).length
+        );
+
         const containers = Array.from(document.querySelectorAll(HOME_CONTAINER_SELECTOR)).filter((element) => {
             if (element.querySelector(":scope > .personalRecommendationsSection")) {
                 initializedContainers.add(element);
@@ -177,6 +192,7 @@
         });
 
         if (!containers.length) {
+            log("no new container to initialize (none found, or already initialized/in progress).");
             return;
         }
 
@@ -184,11 +200,13 @@
         try {
             config = await ApiClient.getPluginConfiguration(PLUGIN_ID);
         } catch (e) {
+            warn("failed to fetch plugin configuration.", e);
             containers.forEach((c) => initializingContainers.delete(c));
             return;
         }
 
         if (!config || config.Enabled === false || config.HomeScreenWidgetEnabled === false) {
+            log("widget disabled via configuration; not rendering.", config);
             containers.forEach((c) => initializingContainers.delete(c));
             return;
         }
@@ -198,6 +216,7 @@
         try {
             items = await ApiClient.getJSON(ApiClient.getUrl(`Recommendations/${userId}`));
         } catch (e) {
+            warn("failed to fetch recommendations for user", userId, e);
             containers.forEach((c) => initializingContainers.delete(c));
             return;
         }
@@ -205,9 +224,11 @@
         containers.forEach((c) => initializingContainers.delete(c));
 
         if (!items || !items.length) {
+            log("no recommendations to show for user", userId, "(cache may not be populated yet - try Refresh recommendations now).");
             return;
         }
 
+        log(`rendering ${items.length} recommendation(s) into ${containers.length} container(s).`);
         ensureStyle();
         const baseUrl = getBaseUrl();
         const heading = config.WidgetHeading || "Recommended For You";
@@ -249,8 +270,11 @@
     }
 
     function initialize() {
+        log("client script loaded, initializing.");
+
         const target = document.body;
         if (!target) {
+            warn("document.body not available; cannot observe for the home screen.");
             return;
         }
 

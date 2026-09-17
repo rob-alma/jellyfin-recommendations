@@ -7,8 +7,8 @@
   "owner": "robalma7",
   "targetAbi": "10.11.0.0",
   "framework": "net9.0",
-  "version": "0.3.0.0",
-  "changelog": "0.3.0: Replaced the private playlist with a \"Recommended For You\" home screen widget (web/app clients) — series now show as themselves instead of their next unwatched episode. Existing pre-0.3.0 playlists are automatically removed on first startup after upgrading. 0.2.1: Non-blocking refresh. 0.2.0: Switched from collections to playlists (superseded by 0.3.0). 0.1.0: Initial release.",
+  "version": "0.3.1.0",
+  "changelog": "0.3.1: The widget's client script now logs its steps to the browser console (prefixed [PersonalRecommendations]) and uses a more robust home-screen container selector - useful if the widget doesn't appear, and needed on at least one confirmed 10.11.11 build where the home tab renders nested inside a React root. 0.3.0: Replaced the private playlist with a \"Recommended For You\" home screen widget (web/app clients) — series now show as themselves instead of their next unwatched episode. Existing pre-0.3.0 playlists are automatically removed on first startup after upgrading. 0.2.1: Non-blocking refresh. 0.2.0: Switched from collections to playlists (superseded by 0.3.0). 0.1.0: Initial release.",
   "artifacts": [
     "Jellyfin.Plugin.PersonalRecommendations.dll",
     "Jellyfin.Plugin.PersonalRecommendations.Core.dll",
