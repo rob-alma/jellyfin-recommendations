@@ -2,18 +2,14 @@
     "use strict";
 
     const PLUGIN_ID = "9985ba03-cbb5-4b44-a997-3a141a1232ab";
-    // Deliberately not anchored on "#indexPage:not(.hide)" as well: on at least one confirmed
-    // 10.11.11 build, the home tab markup (#homeTab.is-active > .homeSectionsContainer) is
-    // nested inside a React-rendered #reactRoot subtree, and #indexPage's exact presence/hide
-    // state there is unconfirmed. #homeTab.is-active is specific enough on its own to mean
-    // "the currently visible home tab".
+    // Not anchored on "#indexPage:not(.hide)" as well: on some builds the home tab
+    // (#homeTab.is-active > .homeSectionsContainer) renders nested inside a React-mounted
+    // subtree where #indexPage's presence/hide state can't be relied on. #homeTab.is-active is
+    // specific enough on its own to mean "the currently visible home tab".
     const HOME_CONTAINER_SELECTOR = "#homeTab.is-active .homeSectionsContainer";
-    const LOG_PREFIX = "[PersonalRecommendations]";
-    const log = (...args) => console.log(LOG_PREFIX, ...args);
-    const warn = (...args) => console.warn(LOG_PREFIX, ...args);
+    const RETRY_DELAY_MS = 4000;
     const initializingContainers = new WeakSet();
     const initializedContainers = new WeakSet();
-    let lastLoggedDiagnosticState = null;
 
     const STYLE = `
         .personalRecommendationsSection { padding: 0 max(env(safe-area-inset-left), 3.3%) 1.8em; }
@@ -171,27 +167,6 @@
     }
 
     async function setup() {
-        const diagnosticState = [
-            document.querySelectorAll("#homeTab").length,
-            document.querySelectorAll("#homeTab.is-active").length,
-            document.querySelectorAll(".homeSectionsContainer").length,
-            document.querySelectorAll(HOME_CONTAINER_SELECTOR).length
-        ].join(",");
-
-        // The observer reacts to any DOM/class change in body (see initialize()), which fires
-        // often; only log when the counts actually changed so the console doesn't flood with
-        // identical "nothing new" lines once things have settled.
-        if (diagnosticState !== lastLoggedDiagnosticState) {
-            lastLoggedDiagnosticState = diagnosticState;
-            const [homeTabCount, activeHomeTabCount, sectionsContainerCount, matchingCount] = diagnosticState.split(",");
-            log(
-                "setup() running; #homeTab count:", homeTabCount,
-                "#homeTab.is-active count:", activeHomeTabCount,
-                ".homeSectionsContainer count:", sectionsContainerCount,
-                "matching containers:", matchingCount
-            );
-        }
-
         const containers = Array.from(document.querySelectorAll(HOME_CONTAINER_SELECTOR)).filter((element) => {
             if (element.querySelector(":scope > .personalRecommendationsSection")) {
                 initializedContainers.add(element);
@@ -214,13 +189,11 @@
         try {
             config = await ApiClient.getPluginConfiguration(PLUGIN_ID);
         } catch (e) {
-            warn("failed to fetch plugin configuration.", e);
             containers.forEach((c) => initializingContainers.delete(c));
             return;
         }
 
         if (!config || config.Enabled === false || config.HomeScreenWidgetEnabled === false) {
-            log("widget disabled via configuration; not rendering.", config);
             containers.forEach((c) => initializingContainers.delete(c));
             return;
         }
@@ -230,7 +203,6 @@
         try {
             items = await ApiClient.getJSON(ApiClient.getUrl(`Recommendations/${userId}`));
         } catch (e) {
-            warn("failed to fetch recommendations for user", userId, e);
             containers.forEach((c) => initializingContainers.delete(c));
             return;
         }
@@ -238,11 +210,13 @@
         containers.forEach((c) => initializingContainers.delete(c));
 
         if (!items || !items.length) {
-            log("no recommendations to show for user", userId, "(cache may not be populated yet - try Refresh recommendations now).");
+            // Likely a cache miss on the server (e.g. shortly after a restart): it returns an
+            // empty list immediately and warms the cache in the background. Retry once shortly
+            // after instead of waiting for an incidental DOM mutation to trigger another check.
+            window.setTimeout(scheduleSetup, RETRY_DELAY_MS);
             return;
         }
 
-        log(`rendering ${items.length} recommendation(s) into ${containers.length} container(s).`);
         ensureStyle();
         const baseUrl = getBaseUrl();
         const heading = config.WidgetHeading || "Recommended For You";
@@ -276,21 +250,17 @@
     }
 
     function initialize() {
-        log("client script loaded, initializing.");
-
         const target = document.body;
         if (!target) {
-            warn("document.body not available; cannot observe for the home screen.");
             return;
         }
 
-        // Deliberately broad: earlier versions only re-checked on mutations to specific nodes
-        // (#indexPage/#homeTab) or newly-added nodes matching the container selector, and that
-        // missed the actual moment .homeSectionsContainer appears on a confirmed 10.11.11 build
-        // (it's added - or gains its class - deeper in a React-rendered subtree, after #homeTab
-        // itself already exists). scheduleSetup() is requestAnimationFrame-debounced and setup()
-        // itself is cheap when nothing new is found, so reacting to any DOM/class churn in body
-        // is safe and far more reliable than trying to be clever about which mutation matters.
+        // Deliberately broad: reacting only to mutations of specific nodes/attributes missed
+        // the actual moment .homeSectionsContainer appears on some builds (it's added, or gains
+        // its class, deeper in a React-rendered subtree, after #homeTab itself already exists).
+        // scheduleSetup() is requestAnimationFrame-debounced and setup() is cheap when nothing's
+        // new, so reacting to any DOM/class churn in body is safe and far more reliable than
+        // trying to guess which mutation matters.
         const observer = new MutationObserver(() => scheduleSetup());
 
         observer.observe(target, {

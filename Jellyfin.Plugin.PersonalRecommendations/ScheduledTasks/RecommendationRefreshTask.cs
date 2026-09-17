@@ -92,6 +92,12 @@ public sealed class RecommendationRefreshTask : IScheduledTask
         var config = Plugin.Instance?.Configuration ?? new Configuration.PluginConfiguration();
         return
         [
+            // Also run on every server start: without this, the cache stays empty (and the
+            // widget's GET /Recommendations/{userId} falls back to computing live, which is
+            // slow enough on a real library to trip a reverse proxy's timeout) until the
+            // interval trigger first fires - up to ScheduledRefreshIntervalHours after every
+            // restart, i.e. after every plugin update.
+            new TaskTriggerInfo { Type = TaskTriggerInfoType.StartupTrigger },
             new TaskTriggerInfo
             {
                 Type = TaskTriggerInfoType.IntervalTrigger,
