@@ -34,6 +34,7 @@
         .personalRecommendationsRow {
             display: flex; gap: 1em; overflow-x: auto; overflow-y: hidden;
             scroll-snap-type: x proximity; scroll-behavior: smooth;
+            overscroll-behavior-x: contain; touch-action: pan-x;
             padding-bottom: 0.5em; -ms-overflow-style: none; scrollbar-width: none;
         }
         .personalRecommendationsRow::-webkit-scrollbar { display: none; }
