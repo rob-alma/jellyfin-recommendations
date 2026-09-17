@@ -46,7 +46,16 @@ public sealed class LibrarySnapshot
 /// </summary>
 public sealed class LibrarySnapshotProvider
 {
+    // Callers (scheduled task, playback-triggered refresh, API cache-miss warm-up) already
+    // never overlap - see ComputeGate - so this only helps when one follows shortly after
+    // another: it reuses the same library scan instead of re-querying Jellyfin for data that
+    // hasn't meaningfully changed in the last few minutes.
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
+
     private readonly ILibraryManager _libraryManager;
+    private readonly object _lock = new();
+    private LibrarySnapshot? _cached;
+    private DateTimeOffset _cachedAt;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="LibrarySnapshotProvider"/> class.
@@ -58,9 +67,30 @@ public sealed class LibrarySnapshotProvider
     }
 
     /// <summary>
-    /// Queries the library once for all movies, series and episodes.
+    /// Gets a snapshot of the library, reusing one built in the last few minutes if there is one.
     /// </summary>
     public LibrarySnapshot GetSnapshot()
+    {
+        lock (_lock)
+        {
+            if (_cached is not null && DateTimeOffset.UtcNow - _cachedAt < CacheDuration)
+            {
+                return _cached;
+            }
+        }
+
+        var snapshot = BuildSnapshot();
+
+        lock (_lock)
+        {
+            _cached = snapshot;
+            _cachedAt = DateTimeOffset.UtcNow;
+        }
+
+        return snapshot;
+    }
+
+    private LibrarySnapshot BuildSnapshot()
     {
         var movies = _libraryManager.GetItemList(new InternalItemsQuery
         {

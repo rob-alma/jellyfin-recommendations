@@ -1,45 +1,40 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Jellyfin.Database.Implementations.Entities;
 using Jellyfin.Plugin.PersonalRecommendations.Domain;
 using MediaBrowser.Controller.Entities;
-using MediaBrowser.Controller.Library;
 
 namespace Jellyfin.Plugin.PersonalRecommendations.Services;
 
 /// <summary>
-/// Reads a user's watch history from Jellyfin and turns it into <see cref="WatchSignal"/>s.
+/// Turns a user's watch history into <see cref="WatchSignal"/>s.
 /// </summary>
 public sealed class WatchHistoryReader
 {
-    private readonly IUserDataManager _userDataManager;
     private readonly ItemFeatureExtractor _featureExtractor;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WatchHistoryReader"/> class.
     /// </summary>
-    /// <param name="userDataManager">Jellyfin's user data manager.</param>
     /// <param name="featureExtractor">Extracts genres/people/studios from items.</param>
-    public WatchHistoryReader(IUserDataManager userDataManager, ItemFeatureExtractor featureExtractor)
+    public WatchHistoryReader(ItemFeatureExtractor featureExtractor)
     {
-        _userDataManager = userDataManager;
         _featureExtractor = featureExtractor;
     }
 
     /// <summary>
     /// Builds the user's watch signals from a library snapshot.
     /// </summary>
-    /// <param name="user">The user to build signals for.</param>
     /// <param name="snapshot">A snapshot of the library.</param>
-    public IReadOnlyList<WatchSignal> BuildSignals(User user, LibrarySnapshot snapshot)
+    /// <param name="userData">Each item's user data, from <see cref="UserDataLookup"/>.</param>
+    public IReadOnlyList<WatchSignal> BuildSignals(LibrarySnapshot snapshot, IReadOnlyDictionary<Guid, UserItemData> userData)
     {
         var signals = new List<WatchSignal>();
 
         foreach (var movie in snapshot.Movies)
         {
-            var userData = _userDataManager.GetUserData(user, movie) ?? new UserItemData { Key = string.Empty };
-            if (!HasInteraction(userData))
+            var data = userData.TryGetValue(movie.Id, out var value) ? value : new UserItemData { Key = string.Empty };
+            if (!HasInteraction(data))
             {
                 continue;
             }
@@ -52,11 +47,11 @@ public sealed class WatchHistoryReader
                 directors,
                 actors,
                 movie.ProductionYear,
-                userData.PlayCount,
-                userData.IsFavorite,
-                userData.Likes,
-                userData.Rating,
-                ToDateTimeOffset(userData.LastPlayedDate)));
+                data.PlayCount,
+                data.IsFavorite,
+                data.Likes,
+                data.Rating,
+                ToDateTimeOffset(data.LastPlayedDate)));
         }
 
         // Jellyfin only persists play count / played state reliably on leaf items (episodes),
@@ -70,14 +65,16 @@ public sealed class WatchHistoryReader
                 continue;
             }
 
-            var episodeUserData = seriesEpisodes.Select(e => _userDataManager.GetUserData(user, e) ?? new UserItemData { Key = string.Empty }).ToList();
+            var episodeUserData = seriesEpisodes
+                .Select(e => userData.TryGetValue(e.Id, out var value) ? value : new UserItemData { Key = string.Empty })
+                .ToList();
             var watchedEpisodeCount = episodeUserData.Count(d => d.Played || d.PlayCount > 0);
             if (watchedEpisodeCount == 0)
             {
                 continue;
             }
 
-            var seriesUserData = _userDataManager.GetUserData(user, series) ?? new UserItemData { Key = string.Empty };
+            var seriesData = userData.TryGetValue(series.Id, out var seriesValue) ? seriesValue : new UserItemData { Key = string.Empty };
             var lastPlayed = episodeUserData
                 .Where(d => d.LastPlayedDate.HasValue)
                 .Select(d => d.LastPlayedDate!.Value)
@@ -93,9 +90,9 @@ public sealed class WatchHistoryReader
                 actors,
                 series.ProductionYear,
                 watchedEpisodeCount,
-                seriesUserData.IsFavorite,
-                seriesUserData.Likes,
-                seriesUserData.Rating,
+                seriesData.IsFavorite,
+                seriesData.Likes,
+                seriesData.Rating,
                 ToDateTimeOffset(lastPlayed == default ? null : lastPlayed)));
         }
 

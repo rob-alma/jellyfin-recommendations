@@ -17,10 +17,12 @@ public sealed class PluginServiceRegistrator : IPluginServiceRegistrator
     {
         serviceCollection.AddSingleton<ItemFeatureExtractor>();
         serviceCollection.AddSingleton<LibrarySnapshotProvider>();
+        serviceCollection.AddSingleton<UserDataLookup>();
         serviceCollection.AddSingleton<WatchHistoryReader>();
         serviceCollection.AddSingleton<CandidateProvider>();
         serviceCollection.AddSingleton<RecommendationEngine>();
         serviceCollection.AddSingleton<RecommendationCache>();
+        serviceCollection.AddSingleton<ComputeGate>();
         serviceCollection.AddHostedService<PlaybackChangeMonitor>();
         serviceCollection.AddHostedService<LegacyPlaylistCleanupService>();
         serviceCollection.AddSingleton<IScheduledTask, RecommendationRefreshTask>();

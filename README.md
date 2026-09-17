@@ -25,6 +25,24 @@ Targets **Jellyfin 10.11.x** (builds against `Jellyfin.Controller`/`Jellyfin.Mod
    full list. See "How the widget gets onto the home screen" below for how that injection works
    and what it depends on.
 
+## Resource usage
+
+Scoring a user against the whole library is the plugin's only real cost, and it's deliberately
+kept bounded and predictable rather than trying to be maximally fast:
+
+- **Never more than one refresh at a time, plugin-wide.** The scheduled task, the debounced
+  playback-triggered refresh (off by default, see below), and an API cache-miss warm-up all go
+  through a single shared gate (`ComputeGate`) that only lets one of them run at once, on one
+  thread. If two would-be triggers land at the same time, one waits (the scheduled task) or is
+  simply skipped for that cycle (the opportunistic ones) rather than running alongside the other.
+- **Each user's watch data is fetched once per refresh**, not once per internal step - building
+  the taste profile and building the candidate list used to independently re-fetch it.
+- **The library scan is reused for a few minutes** across nearby triggers instead of re-querying
+  Jellyfin for data that hasn't meaningfully changed.
+- **The playback-triggered refresh is off by default.** Recommendations only update on the
+  schedule you set (Scheduled refresh interval, or your own custom trigger under Dashboard →
+  Scheduled Tasks) unless you opt into refreshing shortly after playback too.
+
 ## How the widget gets onto the home screen
 
 Jellyfin has no first-party way for a server plugin to add a row to the home screen — there's no
@@ -84,10 +102,10 @@ projects target `net8.0`, so `dotnet test` runs without needing the .NET 9 runti
 ## Install via the Jellyfin plugin catalog (recommended)
 
 `.github/workflows/release.yml` builds the plugin, packages it, and publishes a GitHub Release
-containing the plugin zip and a `manifest.json` whenever a tag like `v0.3.5` is pushed (or via
+containing the plugin zip and a `manifest.json` whenever a tag like `v0.4.0` is pushed (or via
 "Run workflow" in the Actions tab).
 
-1. Push a tag, e.g. `git tag v0.3.5 && git push origin v0.3.5`, and wait for the "Release"
+1. Push a tag, e.g. `git tag v0.4.0 && git push origin v0.4.0`, and wait for the "Release"
    workflow to finish (Actions tab).
 2. In Jellyfin, go to **Dashboard → Plugins → Repositories → Add Repository** and add:
    - Repository name: anything, e.g. `Personal Recommendations`
@@ -101,7 +119,7 @@ containing the plugin zip and a `manifest.json` whenever a tag like `v0.3.5` is 
 
 1. Build in Release mode (above), or `dotnet publish Jellyfin.Plugin.PersonalRecommendations -c Release -o out`.
 2. Copy every `.dll` from the publish/build output plus `meta.json` into a new folder under your
-   Jellyfin server's plugin directory, e.g. `<jellyfin-config>/plugins/PersonalRecommendations_0.3.5.0/`:
+   Jellyfin server's plugin directory, e.g. `<jellyfin-config>/plugins/PersonalRecommendations_0.4.0.0/`:
    - `Jellyfin.Plugin.PersonalRecommendations.dll`
    - `Jellyfin.Plugin.PersonalRecommendations.Core.dll`
    - `Newtonsoft.Json.dll` (a runtime dependency — don't skip it, the plugin won't load without it)
@@ -144,9 +162,9 @@ Available on the plugin's settings page (Dashboard → Plugins → Personal Reco
 | Show the widget on the home screen | on | |
 | Widget heading | `Recommended For You` | |
 | Frontend injection method | Automatic | see "How the widget gets onto the home screen" |
-| Scheduled refresh interval | 6 hours | also runnable on demand |
-| Refresh automatically after playback | on | debounced |
-| Auto-refresh debounce | 3 minutes | wait this long after the last watched item |
+| Scheduled refresh interval | 6 hours | also runnable on demand; the only refresh trigger by default |
+| Refresh automatically after playback | off | opt-in; adds refreshes scattered through the day instead of only on schedule |
+| Auto-refresh debounce | 3 minutes | wait this long after the last watched item (only relevant if the above is on) |
 
 ## API
 

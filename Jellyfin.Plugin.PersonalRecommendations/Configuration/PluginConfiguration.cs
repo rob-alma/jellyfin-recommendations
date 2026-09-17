@@ -17,7 +17,7 @@ public class PluginConfiguration : BasePluginConfiguration
         Enabled = true;
         RecommendationLimit = 20;
         ScheduledRefreshIntervalHours = 6;
-        AutoRefreshAfterPlayback = true;
+        AutoRefreshAfterPlayback = false;
         AutoRefreshDebounceMinutes = 3;
         IncludeMovies = true;
         IncludeSeries = true;
@@ -46,7 +46,9 @@ public class PluginConfiguration : BasePluginConfiguration
 
     /// <summary>
     /// Gets or sets a value indicating whether recommendations refresh automatically a few
-    /// minutes after a user finishes watching something.
+    /// minutes after a user finishes watching something, in addition to the scheduled task.
+    /// Off by default so a server only pays the (single-threaded, see <see cref="Services.ComputeGate"/>)
+    /// cost of a refresh on the schedule the admin set, not scattered through the day as people watch things.
     /// </summary>
     public bool AutoRefreshAfterPlayback { get; set; }
 

@@ -19,6 +19,7 @@ public sealed class RecommendationRefreshTask : IScheduledTask
     private readonly IUserManager _userManager;
     private readonly RecommendationEngine _engine;
     private readonly RecommendationCache _cache;
+    private readonly ComputeGate _gate;
     private readonly ILogger<RecommendationRefreshTask> _logger;
 
     /// <summary>
@@ -27,16 +28,19 @@ public sealed class RecommendationRefreshTask : IScheduledTask
     /// <param name="userManager">Jellyfin's user manager.</param>
     /// <param name="engine">The recommendation engine.</param>
     /// <param name="cache">The recommendation cache.</param>
+    /// <param name="gate">Ensures only one refresh runs at a time across the whole plugin.</param>
     /// <param name="logger">Logger.</param>
     public RecommendationRefreshTask(
         IUserManager userManager,
         RecommendationEngine engine,
         RecommendationCache cache,
+        ComputeGate gate,
         ILogger<RecommendationRefreshTask> logger)
     {
         _userManager = userManager;
         _engine = engine;
         _cache = cache;
+        _gate = gate;
         _logger = logger;
     }
 
@@ -53,37 +57,43 @@ public sealed class RecommendationRefreshTask : IScheduledTask
     public string Category => "Personal Recommendations";
 
     /// <inheritdoc />
-    public Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
+    public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
     {
         var config = Plugin.Instance?.Configuration ?? new Configuration.PluginConfiguration();
         if (!config.Enabled)
         {
             _logger.LogInformation("Personal Recommendations is disabled; skipping refresh.");
-            return Task.CompletedTask;
+            return;
         }
 
-        var users = _userManager.GetUsers().ToArray();
-        var snapshot = _engine.GetSnapshot();
-
-        for (var i = 0; i < users.Length; i++)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var user = users[i];
-
-            try
+        // Waits its turn rather than skipping: this is the authoritative periodic refresh, so
+        // it should still run even if a playback-triggered refresh happens to be in progress -
+        // just not at the same time as it (see ComputeGate).
+        await _gate.RunAsync(
+            () =>
             {
-                var recommendations = _engine.GenerateForUser(user, snapshot, config);
-                _cache.Set(user.Id, recommendations);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to refresh recommendations for user {UserId}.", user.Id);
-            }
+                var users = _userManager.GetUsers().ToArray();
+                var snapshot = _engine.GetSnapshot();
 
-            progress.Report((i + 1) / (double)Math.Max(1, users.Length) * 100);
-        }
+                for (var i = 0; i < users.Length; i++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var user = users[i];
 
-        return Task.CompletedTask;
+                    try
+                    {
+                        var recommendations = _engine.GenerateForUser(user, snapshot, config);
+                        _cache.Set(user.Id, recommendations);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to refresh recommendations for user {UserId}.", user.Id);
+                    }
+
+                    progress.Report((i + 1) / (double)Math.Max(1, users.Length) * 100);
+                }
+            },
+            cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />

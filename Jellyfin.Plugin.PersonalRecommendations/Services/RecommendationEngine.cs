@@ -15,6 +15,7 @@ namespace Jellyfin.Plugin.PersonalRecommendations.Services;
 public sealed class RecommendationEngine
 {
     private readonly LibrarySnapshotProvider _snapshotProvider;
+    private readonly UserDataLookup _userDataLookup;
     private readonly WatchHistoryReader _watchHistoryReader;
     private readonly CandidateProvider _candidateProvider;
     private readonly ILogger<RecommendationEngine> _logger;
@@ -23,16 +24,19 @@ public sealed class RecommendationEngine
     /// Initializes a new instance of the <see cref="RecommendationEngine"/> class.
     /// </summary>
     /// <param name="snapshotProvider">Provides library snapshots.</param>
+    /// <param name="userDataLookup">Fetches each item's user data once per refresh.</param>
     /// <param name="watchHistoryReader">Reads per-user watch signals.</param>
     /// <param name="candidateProvider">Builds per-user candidate lists.</param>
     /// <param name="logger">Logger.</param>
     public RecommendationEngine(
         LibrarySnapshotProvider snapshotProvider,
+        UserDataLookup userDataLookup,
         WatchHistoryReader watchHistoryReader,
         CandidateProvider candidateProvider,
         ILogger<RecommendationEngine> logger)
     {
         _snapshotProvider = snapshotProvider;
+        _userDataLookup = userDataLookup;
         _watchHistoryReader = watchHistoryReader;
         _candidateProvider = candidateProvider;
         _logger = logger;
@@ -52,8 +56,12 @@ public sealed class RecommendationEngine
     /// <param name="config">Plugin configuration.</param>
     public IReadOnlyList<LibraryCandidate> GenerateForUser(User user, LibrarySnapshot snapshot, PluginConfiguration config)
     {
-        var signals = _watchHistoryReader.BuildSignals(user, snapshot);
-        var candidates = _candidateProvider.GetCandidates(user, snapshot, config);
+        // Fetched once per item here and reused by both readers below, instead of each of them
+        // independently calling IUserDataManager.GetUserData on every movie/series/episode.
+        var userData = _userDataLookup.Build(user, snapshot);
+
+        var signals = _watchHistoryReader.BuildSignals(snapshot, userData);
+        var candidates = _candidateProvider.GetCandidates(user, snapshot, userData, config);
         var profile = TasteProfileBuilder.Build(signals, DateTimeOffset.UtcNow);
 
         IReadOnlyList<Domain.ScoredCandidate> scored = profile.HasSignal

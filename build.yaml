@@ -1,7 +1,7 @@
 ---
 name: "PersonalRecommendations"
 guid: "9985ba03-cbb5-4b44-a997-3a141a1232ab"
-version: "0.3.5.0"
+version: "0.4.0.0"
 targetAbi: "10.11.0.0"
 framework: "net9.0"
 overview: "Personalized recommendations based on watch history"
@@ -17,6 +17,13 @@ artifacts:
 - "Jellyfin.Plugin.PersonalRecommendations.Core.dll"
 - "Newtonsoft.Json.dll"
 changelog: >
+  0.4.0: Resource-usage pass. Added a single shared gate so the plugin
+  never runs its scoring work on more than one thread at a time, whichever
+  of the scheduled task / playback-triggered refresh / API cache-miss
+  warm-up triggered it. Each user's watch data is now fetched once per
+  refresh instead of twice. The library scan is reused for a few minutes
+  across nearby triggers. "Refresh automatically after playback" now
+  defaults to off.
   0.3.5: Added left/right scroll arrow buttons next to the row heading
   (hidden automatically when there's nothing to scroll to on that side),
   matching the native Continue Watching row.

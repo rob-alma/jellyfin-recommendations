@@ -19,6 +19,7 @@ public sealed class PlaybackChangeMonitor : IHostedService, IDisposable
     private readonly IUserManager _userManager;
     private readonly RecommendationEngine _engine;
     private readonly RecommendationCache _cache;
+    private readonly ComputeGate _gate;
     private readonly ILogger<PlaybackChangeMonitor> _logger;
     private readonly ConcurrentDictionary<Guid, Timer> _pendingTimers = new();
 
@@ -29,18 +30,21 @@ public sealed class PlaybackChangeMonitor : IHostedService, IDisposable
     /// <param name="userManager">Jellyfin's user manager.</param>
     /// <param name="engine">The recommendation engine.</param>
     /// <param name="cache">The recommendation cache.</param>
+    /// <param name="gate">Ensures only one refresh runs at a time across the whole plugin.</param>
     /// <param name="logger">Logger.</param>
     public PlaybackChangeMonitor(
         IUserDataManager userDataManager,
         IUserManager userManager,
         RecommendationEngine engine,
         RecommendationCache cache,
+        ComputeGate gate,
         ILogger<PlaybackChangeMonitor> logger)
     {
         _userDataManager = userDataManager;
         _userManager = userManager;
         _engine = engine;
         _cache = cache;
+        _gate = gate;
         _logger = logger;
     }
 
@@ -113,10 +117,16 @@ public sealed class PlaybackChangeMonitor : IHostedService, IDisposable
                 return;
             }
 
-            var config = Plugin.Instance!.Configuration;
-            var snapshot = _engine.GetSnapshot();
-            var recommendations = _engine.GenerateForUser(user, snapshot, config);
-            _cache.Set(user.Id, recommendations);
+            // Opportunistic: if something else is already using the plugin's one compute slot
+            // (see ComputeGate), skip this cycle rather than run alongside it. The scheduled
+            // task will pick this user up on its next pass regardless.
+            _gate.TryRun(() =>
+            {
+                var config = Plugin.Instance!.Configuration;
+                var snapshot = _engine.GetSnapshot();
+                var recommendations = _engine.GenerateForUser(user, snapshot, config);
+                _cache.Set(user.Id, recommendations);
+            });
         }
         catch (Exception ex)
         {

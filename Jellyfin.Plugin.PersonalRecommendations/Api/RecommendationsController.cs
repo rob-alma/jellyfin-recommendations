@@ -25,6 +25,7 @@ public sealed class RecommendationsController : ControllerBase
     private readonly IUserManager _userManager;
     private readonly RecommendationEngine _engine;
     private readonly RecommendationCache _cache;
+    private readonly ComputeGate _gate;
     private readonly ITaskManager _taskManager;
     private readonly ILogger<RecommendationsController> _logger;
 
@@ -34,18 +35,21 @@ public sealed class RecommendationsController : ControllerBase
     /// <param name="userManager">Jellyfin's user manager.</param>
     /// <param name="engine">The recommendation engine.</param>
     /// <param name="cache">The recommendation cache.</param>
+    /// <param name="gate">Ensures only one refresh runs at a time across the whole plugin.</param>
     /// <param name="taskManager">Jellyfin's scheduled task manager.</param>
     /// <param name="logger">Logger.</param>
     public RecommendationsController(
         IUserManager userManager,
         RecommendationEngine engine,
         RecommendationCache cache,
+        ComputeGate gate,
         ITaskManager taskManager,
         ILogger<RecommendationsController> logger)
     {
         _userManager = userManager;
         _engine = engine;
         _cache = cache;
+        _gate = gate;
         _taskManager = taskManager;
         _logger = logger;
     }
@@ -92,10 +96,16 @@ public sealed class RecommendationsController : ControllerBase
     {
         try
         {
-            var config = Plugin.Instance!.Configuration;
-            var snapshot = _engine.GetSnapshot();
-            var recommendations = _engine.GenerateForUser(user, snapshot, config);
-            _cache.Set(user.Id, recommendations);
+            // Opportunistic: if the plugin's one compute slot (see ComputeGate) is already in
+            // use, skip - the widget's own client-side retry will ask again shortly, and by
+            // then either this or another refresh will likely have populated the cache.
+            _gate.TryRun(() =>
+            {
+                var config = Plugin.Instance!.Configuration;
+                var snapshot = _engine.GetSnapshot();
+                var recommendations = _engine.GenerateForUser(user, snapshot, config);
+                _cache.Set(user.Id, recommendations);
+            });
         }
         catch (Exception ex)
         {
