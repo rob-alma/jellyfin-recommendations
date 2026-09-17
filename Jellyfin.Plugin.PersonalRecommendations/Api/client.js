@@ -41,10 +41,15 @@
             flex: 0 0 auto; width: 150px; scroll-snap-align: start; text-decoration: none; color: inherit;
         }
         .personalRecommendationsPoster {
-            width: 150px; height: 225px; border-radius: 0.2em; background: #202020 center/cover no-repeat;
+            width: 150px; height: 225px; border-radius: 0.2em; background: #202020; overflow: hidden;
             box-shadow: 0 1px 3px rgba(0,0,0,0.5); transition: transform 0.15s ease;
         }
         .personalRecommendationsCard:hover .personalRecommendationsPoster { transform: scale(1.04); }
+        .personalRecommendationsPosterImage {
+            width: 100%; height: 100%; object-fit: cover; display: block;
+            opacity: 0; transition: opacity 0.2s ease;
+        }
+        .personalRecommendationsPosterImage.personalRecommendationsLoaded { opacity: 1; }
         .personalRecommendationsTitle {
             display: block; margin-top: 0.4em; font-size: 0.85em; white-space: nowrap;
             overflow: hidden; text-overflow: ellipsis;
@@ -113,7 +118,18 @@
         poster.className = "personalRecommendationsPoster";
         const url = posterUrl(item);
         if (url) {
-            poster.style.backgroundImage = `url("${url}")`;
+            // A real <img> (not a CSS background) so the browser can lazy-load and prioritize
+            // it the same way it does for native rows - a background-image has no loading
+            // attribute, so every card's image was being requested immediately regardless of
+            // whether it was in view, competing for bandwidth and loading slower as a batch.
+            const img = document.createElement("img");
+            img.className = "personalRecommendationsPosterImage";
+            img.loading = "lazy";
+            img.decoding = "async";
+            img.alt = "";
+            img.addEventListener("load", () => img.classList.add("personalRecommendationsLoaded"), { once: true });
+            img.src = url;
+            poster.appendChild(img);
         }
 
         const title = document.createElement("span");
