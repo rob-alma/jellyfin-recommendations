@@ -34,7 +34,13 @@
         .personalRecommendationsRow {
             display: flex; gap: 1em; overflow-x: auto; overflow-y: hidden;
             scroll-behavior: smooth;
-            overscroll-behavior-x: contain; touch-action: pan-x;
+            /* pan-y, not pan-x/none: finger-drag no longer scrolls the row at all (that's the
+               touch interaction that was triggering the Android black-screen bug, across
+               several narrower attempts to fix it) - only the arrow buttons' scrollBy() can
+               move it now. pan-y keeps vertical swipes over the row scrolling the page normally
+               instead of being swallowed. overflow-x stays "auto" so scrollBy() still has a
+               real scroll container to act on. */
+            overscroll-behavior-x: contain; touch-action: pan-y;
             padding-bottom: 0.5em; -ms-overflow-style: none; scrollbar-width: none;
         }
         .personalRecommendationsRow::-webkit-scrollbar { display: none; }

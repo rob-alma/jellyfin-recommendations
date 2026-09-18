@@ -102,10 +102,10 @@ projects target `net8.0`, so `dotnet test` runs without needing the .NET 9 runti
 ## Install via the Jellyfin plugin catalog (recommended)
 
 `.github/workflows/release.yml` builds the plugin, packages it, and publishes a GitHub Release
-containing the plugin zip and a `manifest.json` whenever a tag like `v0.4.4` is pushed (or via
+containing the plugin zip and a `manifest.json` whenever a tag like `v0.4.5` is pushed (or via
 "Run workflow" in the Actions tab).
 
-1. Push a tag, e.g. `git tag v0.4.4 && git push origin v0.4.4`, and wait for the "Release"
+1. Push a tag, e.g. `git tag v0.4.5 && git push origin v0.4.5`, and wait for the "Release"
    workflow to finish (Actions tab).
 2. In Jellyfin, go to **Dashboard → Plugins → Repositories → Add Repository** and add:
    - Repository name: anything, e.g. `Personal Recommendations`
@@ -119,7 +119,7 @@ containing the plugin zip and a `manifest.json` whenever a tag like `v0.4.4` is 
 
 1. Build in Release mode (above), or `dotnet publish Jellyfin.Plugin.PersonalRecommendations -c Release -o out`.
 2. Copy every `.dll` from the publish/build output plus `meta.json` into a new folder under your
-   Jellyfin server's plugin directory, e.g. `<jellyfin-config>/plugins/PersonalRecommendations_0.4.4.0/`:
+   Jellyfin server's plugin directory, e.g. `<jellyfin-config>/plugins/PersonalRecommendations_0.4.5.0/`:
    - `Jellyfin.Plugin.PersonalRecommendations.dll`
    - `Jellyfin.Plugin.PersonalRecommendations.Core.dll`
    - `Newtonsoft.Json.dll` (a runtime dependency — don't skip it, the plugin won't load without it)
