@@ -227,7 +227,13 @@
         headerBar.appendChild(scrollButtons);
 
         const row = document.createElement("div");
-        row.className = "personalRecommendationsRow";
+        // "scrollX" isn't styling (this row's own CSS class already covers that) - it's what
+        // Jellyfin's own swipe-to-change-tab handler (maintabsmanager.js: allowSwipe/allowSwipeOn)
+        // checks for while walking up from the touch's start element, and every native scrollable
+        // row (emby-scroller) carries it for exactly this reason. Without it, a swipe starting on
+        // this row falls through to that handler and can switch the home screen to the next tab
+        // (e.g. Favorites) instead of just scrolling the row.
+        row.className = "personalRecommendationsRow scrollX";
         items.forEach((item) => row.appendChild(buildCard(item, baseUrl)));
 
         section.appendChild(headerBar);

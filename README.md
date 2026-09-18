@@ -87,11 +87,13 @@ your browser/app asks for a new copy of `index.html` in the first place, and Jel
 an old cached copy of the widget script indefinitely with no sign anything's wrong other than it
 not behaving like the changelog says it should.
 
-A fast swipe across the row can carry past its edge into Jellyfin's own swipe-between-tabs
-gesture (Home → Favorites → …) — same as any other horizontally-scrolling row (Continue
-Watching included). That's normal Jellyfin navigation, not a bug in this widget; it can look
-alarming on an account with an empty Favorites tab, which is what the optional favorites-seeding
-setting below is for.
+On a touch device, Jellyfin's own swipe-between-tabs gesture (Home → Favorites → …) explicitly
+skips itself for a touch that starts on an element carrying the `scrollX` class — every native
+scrollable row carries it for exactly this reason, which is why swiping Continue Watching never
+changes tabs. This row carries the same class, so a swipe on it — any speed, starting anywhere on
+the row — scrolls the row instead of ever reaching the tab switcher. If you do navigate to
+Favorites (by tab or swipe) on an account that's never favorited anything, the optional
+favorites-seeding setting below keeps that tab from being empty.
 
 ## Project layout
 
@@ -116,10 +118,10 @@ projects target `net8.0`, so `dotnet test` runs without needing the .NET 9 runti
 ## Install via the Jellyfin plugin catalog (recommended)
 
 `.github/workflows/release.yml` builds the plugin, packages it, and publishes a GitHub Release
-containing the plugin zip and a `manifest.json` whenever a tag like `v0.4.7` is pushed (or via
+containing the plugin zip and a `manifest.json` whenever a tag like `v0.4.8` is pushed (or via
 "Run workflow" in the Actions tab).
 
-1. Push a tag, e.g. `git tag v0.4.7 && git push origin v0.4.7`, and wait for the "Release"
+1. Push a tag, e.g. `git tag v0.4.8 && git push origin v0.4.8`, and wait for the "Release"
    workflow to finish (Actions tab).
 2. In Jellyfin, go to **Dashboard → Plugins → Repositories → Add Repository** and add:
    - Repository name: anything, e.g. `Personal Recommendations`
@@ -133,7 +135,7 @@ containing the plugin zip and a `manifest.json` whenever a tag like `v0.4.7` is 
 
 1. Build in Release mode (above), or `dotnet publish Jellyfin.Plugin.PersonalRecommendations -c Release -o out`.
 2. Copy every `.dll` from the publish/build output plus `meta.json` into a new folder under your
-   Jellyfin server's plugin directory, e.g. `<jellyfin-config>/plugins/PersonalRecommendations_0.4.7.0/`:
+   Jellyfin server's plugin directory, e.g. `<jellyfin-config>/plugins/PersonalRecommendations_0.4.8.0/`:
    - `Jellyfin.Plugin.PersonalRecommendations.dll`
    - `Jellyfin.Plugin.PersonalRecommendations.Core.dll`
    - `Newtonsoft.Json.dll` (a runtime dependency — don't skip it, the plugin won't load without it)

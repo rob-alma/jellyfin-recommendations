@@ -1,7 +1,7 @@
 ---
 name: "PersonalRecommendations"
 guid: "9985ba03-cbb5-4b44-a997-3a141a1232ab"
-version: "0.4.7.0"
+version: "0.4.8.0"
 targetAbi: "10.11.0.0"
 framework: "net9.0"
 overview: "Personalized recommendations based on watch history"
@@ -17,6 +17,14 @@ artifacts:
 - "Jellyfin.Plugin.PersonalRecommendations.Core.dll"
 - "Newtonsoft.Json.dll"
 changelog: >
+  0.4.8: Found the actual mechanism behind the row-swipe-into-Favorites-tab
+  behavior 0.4.7 explained but didn't prevent: Jellyfin's own swipe-to-
+  change-tab handler explicitly skips itself for any touch that starts on
+  an element carrying the "scrollX" class - every native row already has
+  it, which is why this never happened on Continue Watching. This row now
+  carries that same class, so a swipe on it scrolls the row like any other
+  native row instead of ever reaching the tab switcher, regardless of speed
+  or where on the row it starts.
   0.4.7: The Android/mobile "black screen" was never a rendering bug - a fast
   swipe on the recommendations row was landing on Jellyfin's own next tab
   (Favorites), which looked black because it was empty. Reverted every
