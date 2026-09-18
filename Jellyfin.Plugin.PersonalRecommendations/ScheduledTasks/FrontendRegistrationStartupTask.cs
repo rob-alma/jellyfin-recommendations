@@ -61,6 +61,7 @@ public sealed class FrontendRegistrationStartupTask : IScheduledTask
 
         var basePath = GetBasePath();
         WidgetRuntime.BasePath = basePath;
+        WidgetRuntime.ScriptVersion = GetType().Assembly.GetName().Version?.ToString() ?? "0";
 
         if (!FrontendRegistration.TryRegisterConfigured(config, _applicationPaths, basePath, _logger))
         {

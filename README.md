@@ -79,6 +79,14 @@ which every client can see — but Jellyfin silently expands a Series added to a
 every one of its episodes, so a recommended series never actually showed up as itself. 0.3.0
 drops that approach entirely in favor of the widget, which doesn't have that limitation.
 
+**After updating the plugin, do a hard refresh (or clear site data) for your Jellyfin domain**,
+in the app too. The script itself is served with no-cache headers and its URL carries the
+plugin's version (`?v=...`) so a version bump is always fetched fresh — but that only helps once
+your browser/app asks for a new copy of `index.html` in the first place, and Jellyfin's own
+`index.html` caching is outside this plugin's control. Without a hard refresh, you can be running
+an old cached copy of the widget script indefinitely with no sign anything's wrong other than it
+not behaving like the changelog says it should.
+
 ## Project layout
 
 - `Jellyfin.Plugin.PersonalRecommendations.Core/` — the pure scoring/profile-building logic.
@@ -102,10 +110,10 @@ projects target `net8.0`, so `dotnet test` runs without needing the .NET 9 runti
 ## Install via the Jellyfin plugin catalog (recommended)
 
 `.github/workflows/release.yml` builds the plugin, packages it, and publishes a GitHub Release
-containing the plugin zip and a `manifest.json` whenever a tag like `v0.4.5` is pushed (or via
+containing the plugin zip and a `manifest.json` whenever a tag like `v0.4.6` is pushed (or via
 "Run workflow" in the Actions tab).
 
-1. Push a tag, e.g. `git tag v0.4.5 && git push origin v0.4.5`, and wait for the "Release"
+1. Push a tag, e.g. `git tag v0.4.6 && git push origin v0.4.6`, and wait for the "Release"
    workflow to finish (Actions tab).
 2. In Jellyfin, go to **Dashboard → Plugins → Repositories → Add Repository** and add:
    - Repository name: anything, e.g. `Personal Recommendations`
@@ -119,7 +127,7 @@ containing the plugin zip and a `manifest.json` whenever a tag like `v0.4.5` is 
 
 1. Build in Release mode (above), or `dotnet publish Jellyfin.Plugin.PersonalRecommendations -c Release -o out`.
 2. Copy every `.dll` from the publish/build output plus `meta.json` into a new folder under your
-   Jellyfin server's plugin directory, e.g. `<jellyfin-config>/plugins/PersonalRecommendations_0.4.5.0/`:
+   Jellyfin server's plugin directory, e.g. `<jellyfin-config>/plugins/PersonalRecommendations_0.4.6.0/`:
    - `Jellyfin.Plugin.PersonalRecommendations.dll`
    - `Jellyfin.Plugin.PersonalRecommendations.Core.dll`
    - `Newtonsoft.Json.dll` (a runtime dependency — don't skip it, the plugin won't load without it)

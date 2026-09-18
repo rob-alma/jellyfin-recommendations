@@ -12,13 +12,24 @@ public static partial class ScriptMarkup
     private const string PluginMarker = "PersonalRecommendations";
 
     /// <summary>
+    /// Builds the script's URL, including a cache-busting version query parameter so a plugin
+    /// update always fetches fresh instead of a browser/WebView potentially reusing a cached
+    /// copy of a previous version's script indefinitely.
+    /// </summary>
+    /// <param name="basePath">The server's reverse-proxy base path (e.g. "/jellyfin"), or "".</param>
+    public static string ScriptUrl(string basePath)
+    {
+        return $"{basePath}/PersonalRecommendations/script?v={WidgetRuntime.ScriptVersion}";
+    }
+
+    /// <summary>
     /// Builds the script tag markup.
     /// </summary>
     /// <param name="basePath">The server's reverse-proxy base path (e.g. "/jellyfin"), or "".</param>
     /// <param name="extraAttribute">An extra marker attribute distinguishing how it was inserted.</param>
     public static string Build(string basePath, string extraAttribute)
     {
-        return $"<script {extraAttribute} plugin=\"{PluginMarker}\" defer=\"defer\" src=\"{basePath}/PersonalRecommendations/script\"></script>";
+        return $"<script {extraAttribute} plugin=\"{PluginMarker}\" defer=\"defer\" src=\"{ScriptUrl(basePath)}\"></script>";
     }
 
     /// <summary>

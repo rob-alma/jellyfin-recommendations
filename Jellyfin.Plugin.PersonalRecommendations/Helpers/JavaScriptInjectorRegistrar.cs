@@ -83,7 +83,7 @@ public static class JavaScriptInjectorRegistrar
 
     private static string BuildLoaderScript(string basePath)
     {
-        var scriptUrl = JsonConvert.SerializeObject($"{basePath}/PersonalRecommendations/script");
+        var scriptUrl = JsonConvert.SerializeObject(ScriptMarkup.ScriptUrl(basePath));
 
         return $$"""
             (() => {

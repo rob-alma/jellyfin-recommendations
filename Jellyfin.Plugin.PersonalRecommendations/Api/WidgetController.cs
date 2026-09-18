@@ -31,6 +31,15 @@ public sealed class WidgetController : ControllerBase
             return NotFound();
         }
 
+        // Without this, browsers/WebViews can keep serving a cached copy of this script
+        // indefinitely across plugin updates - the server having a new version doesn't help if
+        // the client never asks for it again. The script tag's URL also carries a version query
+        // parameter (see ScriptMarkup) as a second layer, in case something between here and the
+        // client ignores these headers.
+        Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+        Response.Headers["Pragma"] = "no-cache";
+        Response.Headers["Expires"] = "0";
+
         return File(stream, "application/javascript");
     }
 }
