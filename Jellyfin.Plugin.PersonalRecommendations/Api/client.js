@@ -186,22 +186,21 @@
     }
 
     function wireScrollButtons(row, scrollButtons, leftButton, rightButton) {
-        const updateVisibility = () => {
-            const hasOverflow = row.scrollWidth > row.clientWidth + 1;
-            scrollButtons.hidden = !hasOverflow;
-            if (!hasOverflow) {
-                return;
-            }
-
-            leftButton.hidden = row.scrollLeft <= 0;
-            rightButton.hidden = row.scrollLeft + row.clientWidth >= row.scrollWidth - 1;
+        // Deliberately NOT updated on the row's own "scroll" event: doing DOM writes (toggling
+        // [hidden]) from a scroll handler means layout work happening in lockstep with touch-
+        // driven momentum scrolling, which on some Android WebView versions causes exactly the
+        // rendering stalls (briefly-black content) this was built to avoid. Visibility is only
+        // ever computed at render time and on resize - both rare, neither during an active
+        // scroll gesture. The trade-off: an arrow can stay visible after scrolling all the way
+        // to that end; clicking it then is a harmless no-op (nothing left to scroll to).
+        const updateOverflow = () => {
+            scrollButtons.hidden = row.scrollWidth <= row.clientWidth + 1;
         };
 
         leftButton.addEventListener("click", () => row.scrollBy({ left: -row.clientWidth * 0.9, behavior: "smooth" }));
         rightButton.addEventListener("click", () => row.scrollBy({ left: row.clientWidth * 0.9, behavior: "smooth" }));
-        row.addEventListener("scroll", updateVisibility, { passive: true });
-        window.addEventListener("resize", updateVisibility);
-        updateVisibility();
+        window.addEventListener("resize", updateOverflow);
+        updateOverflow();
     }
 
     function renderSection(container, items, heading, baseUrl) {
