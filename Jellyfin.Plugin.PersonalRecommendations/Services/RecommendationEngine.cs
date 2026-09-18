@@ -18,6 +18,7 @@ public sealed class RecommendationEngine
     private readonly UserDataLookup _userDataLookup;
     private readonly WatchHistoryReader _watchHistoryReader;
     private readonly CandidateProvider _candidateProvider;
+    private readonly FavoritesSeeder _favoritesSeeder;
     private readonly ILogger<RecommendationEngine> _logger;
 
     /// <summary>
@@ -27,18 +28,21 @@ public sealed class RecommendationEngine
     /// <param name="userDataLookup">Fetches each item's user data once per refresh.</param>
     /// <param name="watchHistoryReader">Reads per-user watch signals.</param>
     /// <param name="candidateProvider">Builds per-user candidate lists.</param>
+    /// <param name="favoritesSeeder">Seeds favorites for accounts that have none.</param>
     /// <param name="logger">Logger.</param>
     public RecommendationEngine(
         LibrarySnapshotProvider snapshotProvider,
         UserDataLookup userDataLookup,
         WatchHistoryReader watchHistoryReader,
         CandidateProvider candidateProvider,
+        FavoritesSeeder favoritesSeeder,
         ILogger<RecommendationEngine> logger)
     {
         _snapshotProvider = snapshotProvider;
         _userDataLookup = userDataLookup;
         _watchHistoryReader = watchHistoryReader;
         _candidateProvider = candidateProvider;
+        _favoritesSeeder = favoritesSeeder;
         _logger = logger;
     }
 
@@ -78,6 +82,8 @@ public sealed class RecommendationEngine
             signals.Count,
             !profile.HasSignal);
 
-        return selected.Select(s => s.Candidate).ToArray();
+        var result = selected.Select(s => s.Candidate).ToArray();
+        _favoritesSeeder.MaybeSeed(user, userData, result, config);
+        return result;
     }
 }

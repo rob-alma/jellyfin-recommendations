@@ -63,6 +63,19 @@
                         </label>
                     </div>
 
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="SeedFavoritesForNewUsers" name="SeedFavoritesForNewUsers" type="checkbox" is="emby-checkbox" />
+                            <span>Seed a few favorites for accounts that have none</span>
+                        </label>
+                        <div class="fieldDescription">
+                            Cosmetic only: the first time recommendations are computed for an account with zero
+                            favorites of its own, marks its top 3 recommendations as favorites so Jellyfin's own
+                            Favorites tab isn't empty. Never touches an account that already has even one favorite,
+                            and only ever runs once per account.
+                        </div>
+                    </div>
+
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="WidgetHeading">Widget heading</label>
                         <input id="WidgetHeading" name="WidgetHeading" type="text" is="emby-input" />
@@ -139,6 +152,7 @@
                         document.querySelector('#IncludeMovies').checked = config.IncludeMovies;
                         document.querySelector('#IncludeSeries').checked = config.IncludeSeries;
                         document.querySelector('#HomeScreenWidgetEnabled').checked = config.HomeScreenWidgetEnabled;
+                        document.querySelector('#SeedFavoritesForNewUsers').checked = config.SeedFavoritesForNewUsers;
                         document.querySelector('#WidgetHeading').value = config.WidgetHeading;
                         document.querySelector('#FrontendInjectionMethod').value = config.FrontendInjectionMethod;
                         document.querySelector('#ScheduledRefreshIntervalHours').value = config.ScheduledRefreshIntervalHours;
@@ -159,6 +173,7 @@
                         config.IncludeMovies = document.querySelector('#IncludeMovies').checked;
                         config.IncludeSeries = document.querySelector('#IncludeSeries').checked;
                         config.HomeScreenWidgetEnabled = document.querySelector('#HomeScreenWidgetEnabled').checked;
+                        config.SeedFavoritesForNewUsers = document.querySelector('#SeedFavoritesForNewUsers').checked;
                         config.WidgetHeading = document.querySelector('#WidgetHeading').value;
                         config.FrontendInjectionMethod = document.querySelector('#FrontendInjectionMethod').value;
                         config.ScheduledRefreshIntervalHours = parseInt(document.querySelector('#ScheduledRefreshIntervalHours').value, 10);

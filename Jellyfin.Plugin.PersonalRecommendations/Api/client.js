@@ -33,19 +33,12 @@
         .personalRecommendationsScrollButton[hidden] { display: none; }
         .personalRecommendationsRow {
             display: flex; gap: 1em; overflow-x: auto; overflow-y: hidden;
-            scroll-behavior: smooth;
-            /* pan-y, not pan-x/none: finger-drag no longer scrolls the row at all (that's the
-               touch interaction that was triggering the Android black-screen bug, across
-               several narrower attempts to fix it) - only the arrow buttons' scrollBy() can
-               move it now. pan-y keeps vertical swipes over the row scrolling the page normally
-               instead of being swallowed. overflow-x stays "auto" so scrollBy() still has a
-               real scroll container to act on. */
-            overscroll-behavior-x: contain; touch-action: pan-y;
+            scroll-snap-type: x proximity; scroll-behavior: smooth;
             padding-bottom: 0.5em; -ms-overflow-style: none; scrollbar-width: none;
         }
         .personalRecommendationsRow::-webkit-scrollbar { display: none; }
         .personalRecommendationsCard {
-            flex: 0 0 auto; width: 150px; text-decoration: none; color: inherit;
+            flex: 0 0 auto; width: 150px; scroll-snap-align: start; text-decoration: none; color: inherit;
         }
         .personalRecommendationsPoster {
             width: 150px; height: 225px; border-radius: 0.2em; background: #202020; overflow: hidden;
@@ -192,21 +185,22 @@
     }
 
     function wireScrollButtons(row, scrollButtons, leftButton, rightButton) {
-        // Deliberately NOT updated on the row's own "scroll" event: doing DOM writes (toggling
-        // [hidden]) from a scroll handler means layout work happening in lockstep with touch-
-        // driven momentum scrolling, which on some Android WebView versions causes exactly the
-        // rendering stalls (briefly-black content) this was built to avoid. Visibility is only
-        // ever computed at render time and on resize - both rare, neither during an active
-        // scroll gesture. The trade-off: an arrow can stay visible after scrolling all the way
-        // to that end; clicking it then is a harmless no-op (nothing left to scroll to).
-        const updateOverflow = () => {
-            scrollButtons.hidden = row.scrollWidth <= row.clientWidth + 1;
+        const updateVisibility = () => {
+            const hasOverflow = row.scrollWidth > row.clientWidth + 1;
+            scrollButtons.hidden = !hasOverflow;
+            if (!hasOverflow) {
+                return;
+            }
+
+            leftButton.hidden = row.scrollLeft <= 0;
+            rightButton.hidden = row.scrollLeft + row.clientWidth >= row.scrollWidth - 1;
         };
 
         leftButton.addEventListener("click", () => row.scrollBy({ left: -row.clientWidth * 0.9, behavior: "smooth" }));
         rightButton.addEventListener("click", () => row.scrollBy({ left: row.clientWidth * 0.9, behavior: "smooth" }));
-        window.addEventListener("resize", updateOverflow);
-        updateOverflow();
+        row.addEventListener("scroll", updateVisibility, { passive: true });
+        window.addEventListener("resize", updateVisibility);
+        updateVisibility();
     }
 
     function renderSection(container, items, heading, baseUrl) {
