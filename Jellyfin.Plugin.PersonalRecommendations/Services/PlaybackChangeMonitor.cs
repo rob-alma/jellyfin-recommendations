@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Model.Entities;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -21,6 +22,7 @@ public sealed class PlaybackChangeMonitor : IHostedService, IDisposable
     private readonly RecommendationCache _cache;
     private readonly ComputeGate _gate;
     private readonly ILogger<PlaybackChangeMonitor> _logger;
+    private static readonly TimeSpan RatingRefreshDelay = TimeSpan.FromMinutes(1);
     private readonly ConcurrentDictionary<Guid, Timer> _pendingTimers = new();
 
     /// <summary>
@@ -80,17 +82,23 @@ public sealed class PlaybackChangeMonitor : IHostedService, IDisposable
     private void OnUserDataSaved(object? sender, UserDataSaveEventArgs e)
     {
         var config = Plugin.Instance?.Configuration;
-        if (config is null || !config.Enabled || !config.AutoRefreshAfterPlayback)
+        if (config is null || !config.Enabled || e.UserId == Guid.Empty || e.UserData is null)
         {
             return;
         }
 
-        if (e.UserId == Guid.Empty || e.UserData is null || (!e.UserData.Played && e.UserData.PlayCount <= 0))
+        // A rating (or like/dislike) is deliberate and rare, so it always triggers a refresh, a
+        // minute later; playback only does when "refresh after playback" is on.
+        var rated = e.SaveReason is UserDataSaveReason.UpdateUserRating or UserDataSaveReason.UpdateUserData;
+        var played = config.AutoRefreshAfterPlayback && (e.UserData.Played || e.UserData.PlayCount > 0);
+        if (!rated && !played)
         {
             return;
         }
 
-        var delay = TimeSpan.FromMinutes(Math.Max(1, config.AutoRefreshDebounceMinutes));
+        var delay = rated
+            ? RatingRefreshDelay
+            : TimeSpan.FromMinutes(Math.Max(1, config.AutoRefreshDebounceMinutes));
         _pendingTimers.AddOrUpdate(
             e.UserId,
             _ => new Timer(RunRefresh, e.UserId, delay, Timeout.InfiniteTimeSpan),

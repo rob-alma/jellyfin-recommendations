@@ -108,11 +108,15 @@ public sealed class RecommendationRefreshTask : IScheduledTask
             // interval trigger first fires - up to ScheduledRefreshIntervalHours after every
             // restart, i.e. after every plugin update.
             new TaskTriggerInfo { Type = TaskTriggerInfoType.StartupTrigger },
-            new TaskTriggerInfo
-            {
-                Type = TaskTriggerInfoType.IntervalTrigger,
-                IntervalTicks = TimeSpan.FromHours(Math.Max(1, config.ScheduledRefreshIntervalHours)).Ticks
-            }
+            // Once a night by default, while nobody's watching; ratings still refresh that
+            // user's list a minute later (PlaybackChangeMonitor), so daytime changes show up.
+            config.NightlyRefreshHour is >= 0 and <= 23
+                ? new TaskTriggerInfo { Type = TaskTriggerInfoType.DailyTrigger, TimeOfDayTicks = TimeSpan.FromHours(config.NightlyRefreshHour).Ticks }
+                : new TaskTriggerInfo
+                {
+                    Type = TaskTriggerInfoType.IntervalTrigger,
+                    IntervalTicks = TimeSpan.FromHours(Math.Max(1, config.ScheduledRefreshIntervalHours)).Ticks
+                }
         ];
     }
 }

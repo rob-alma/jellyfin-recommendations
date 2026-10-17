@@ -113,4 +113,45 @@ public class TasteProfileBuilderTests
         Assert.True(profile.PersonWeights.ContainsKey("A5"));
         Assert.False(profile.PersonWeights.ContainsKey("A6"));
     }
+
+    [Fact]
+    public void Build_RatingLevels_OrderFromTerribleToAmazing()
+    {
+        double Genre(double rating) =>
+            TasteProfileBuilder.Build([PlainSignal("Drama") with { Rating = rating }], Now).GenreWeights["Drama"];
+
+        Assert.True(Genre(2) < Genre(4));
+        Assert.True(Genre(4) < 0);
+        Assert.True(Genre(6) > 0);
+        Assert.True(Genre(6) < Genre(8));
+        Assert.True(Genre(8) < Genre(10));
+    }
+
+    [Fact]
+    public void Build_AmazingRating_OutweighsAPlainWatch()
+    {
+        var plain = TasteProfileBuilder.Build([PlainSignal("Action")], Now);
+        var amazing = TasteProfileBuilder.Build([PlainSignal("Action") with { Rating = 10 }], Now);
+
+        Assert.True(amazing.GenreWeights["Action"] > plain.GenreWeights["Action"] * 2);
+    }
+
+    [Fact]
+    public void Build_ZeroRating_MeansNoRatingNotTheWorst()
+    {
+        var plain = TasteProfileBuilder.Build([PlainSignal("Comedy")], Now);
+        var cleared = TasteProfileBuilder.Build([PlainSignal("Comedy") with { Rating = 0 }], Now);
+
+        Assert.Equal(plain.GenreWeights["Comedy"], cleared.GenreWeights["Comedy"]);
+    }
+
+    [Fact]
+    public void Build_RatingTakesPrecedenceOverLikeFlag()
+    {
+        // Rating apps set Likes alongside the rating; it mustn't be counted twice.
+        var withLike = TasteProfileBuilder.Build([PlainSignal("Romance") with { Rating = 10, Likes = true }], Now);
+        var ratingOnly = TasteProfileBuilder.Build([PlainSignal("Romance") with { Rating = 10 }], Now);
+
+        Assert.Equal(ratingOnly.GenreWeights["Romance"], withLike.GenreWeights["Romance"]);
+    }
 }

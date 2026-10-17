@@ -20,7 +20,6 @@ public sealed class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddSingleton<UserDataLookup>();
         serviceCollection.AddSingleton<WatchHistoryReader>();
         serviceCollection.AddSingleton<CandidateProvider>();
-        serviceCollection.AddSingleton<FavoritesSeeder>();
         serviceCollection.AddSingleton<RecommendationEngine>();
         serviceCollection.AddSingleton<RecommendationCache>();
         serviceCollection.AddSingleton<ComputeGate>();

@@ -63,6 +63,8 @@ public sealed class CandidateProvider
         // BaseItem.IsPlayed is polymorphic: for a Series it recursively checks whether every
         // episode has been watched, so this correctly excludes fully-watched shows too.
         var data = userData.TryGetValue(item.Id, out var value) ? value : new UserItemData { Key = string.Empty };
-        return item.IsPlayed(user, data);
+
+        // Rating something (or giving it a thumbs down) means they've seen it, even if not here.
+        return item.IsPlayed(user, data) || data.Rating > 0 || data.Likes == false;
     }
 }

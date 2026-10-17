@@ -17,6 +17,7 @@ public class PluginConfiguration : BasePluginConfiguration
         Enabled = true;
         RecommendationLimit = 20;
         ScheduledRefreshIntervalHours = 6;
+        NightlyRefreshHour = 3;
         AutoRefreshAfterPlayback = false;
         AutoRefreshDebounceMinutes = 3;
         IncludeMovies = true;
@@ -26,9 +27,7 @@ public class PluginConfiguration : BasePluginConfiguration
         HomeScreenWidgetEnabled = true;
         FrontendInjectionMethod = FrontendInjectionMethods.Automatic;
         WidgetHeading = "Recommended For You";
-        SeedFavoritesForNewUsers = true;
         PlaylistMappings = new List<UserPlaylistMapping>();
-        FavoritesSeedCompletedUserIds = new List<Guid>();
     }
 
     /// <summary>
@@ -45,6 +44,12 @@ public class PluginConfiguration : BasePluginConfiguration
     /// Gets or sets the scheduled refresh interval, in hours.
     /// </summary>
     public int ScheduledRefreshIntervalHours { get; set; }
+
+    /// <summary>
+    /// Gets or sets the hour (0-23) of the nightly refresh, so the heavy scoring runs while
+    /// nobody's watching. -1 uses <see cref="ScheduledRefreshIntervalHours"/> instead.
+    /// </summary>
+    public int NightlyRefreshHour { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether recommendations refresh automatically a few
@@ -97,17 +102,6 @@ public class PluginConfiguration : BasePluginConfiguration
     public string WidgetHeading { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether a user account with zero favorites of its own
-    /// gets a handful of its top recommendations marked as favorites, the first time
-    /// recommendations are computed for it. Purely cosmetic - it exists so Jellyfin's own
-    /// Favorites tab isn't empty (e.g. when swiping between home screen tabs lands there) -
-    /// and only ever applies to an account that has never favorited anything itself; an
-    /// account with even one existing favorite is never touched. See
-    /// <see cref="Services.FavoritesSeeder"/>.
-    /// </summary>
-    public bool SeedFavoritesForNewUsers { get; set; }
-
-    /// <summary>
     /// Gets or sets the per-user playlist ids created by versions up to 0.2.1, before
     /// recommendations were delivered as a home screen widget instead of a playlist. Read once
     /// by <see cref="Services.LegacyPlaylistCleanupService"/> to remove those playlists, then
@@ -116,12 +110,6 @@ public class PluginConfiguration : BasePluginConfiguration
     /// </summary>
     public List<UserPlaylistMapping> PlaylistMappings { get; set; }
 
-    /// <summary>
-    /// Gets or sets the ids of users <see cref="Services.FavoritesSeeder"/> has already decided
-    /// about (seeded favorites for, or found already had some) - so it only ever acts once per
-    /// user, even if they later remove every favorite again.
-    /// </summary>
-    public List<Guid> FavoritesSeedCompletedUserIds { get; set; }
 }
 
 /// <summary>

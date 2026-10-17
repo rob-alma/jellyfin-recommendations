@@ -19,6 +19,12 @@ public static class TasteProfileBuilder
     private const double DecadeWeightFactor = 0.5;
     private const int MaxActorsPerSignal = 5;
 
+    // An explicit rating says far more than "watched it", so it replaces the plain-watch weight
+    // (and the like/dislike flag, which rating apps usually set alongside it). Index = level
+    // 1-5 (Terrible, Bad, Okay, Good, Amazing), from Jellyfin's 0-10 user rating halved.
+    // Negative levels actively push similar titles down, not just fail to boost them.
+    private static readonly double[] RatingLevelWeights = [-3.0, -1.5, 0.5, 2.0, 3.5];
+
     /// <summary>
     /// Builds a taste profile from a user's watch signals.
     /// </summary>
@@ -70,12 +76,12 @@ public static class TasteProfileBuilder
     {
         var weight = 1.0;
 
-        if (signal.IsFavorite)
+        // 0 means "no rating" (clearing a rating stores 0), not "the worst possible rating".
+        if (signal.Rating is > 0 and var rating)
         {
-            weight += 1.0;
+            weight = RatingWeight(rating);
         }
-
-        if (signal.Likes == true)
+        else if (signal.Likes == true)
         {
             weight += 1.0;
         }
@@ -85,9 +91,9 @@ public static class TasteProfileBuilder
             weight -= 2.0;
         }
 
-        if (signal.Rating.HasValue)
+        if (signal.IsFavorite)
         {
-            weight += (signal.Rating.Value - 5.0) * 0.3;
+            weight += 1.0;
         }
 
         if (signal.PlayCount > 1)
@@ -103,6 +109,19 @@ public static class TasteProfileBuilder
         }
 
         return weight * decay;
+    }
+
+    /// <summary>
+    /// The weight of an explicit rating on Jellyfin's 0-10 scale, interpolated between the five
+    /// levels so ratings set by other apps (any value 0-10) land sensibly too.
+    /// </summary>
+    /// <param name="rating">The user rating, above 0.</param>
+    internal static double RatingWeight(double rating)
+    {
+        var level = Math.Clamp(rating / 2.0, 1.0, 5.0) - 1.0;
+        var lower = (int)Math.Floor(level);
+        var upper = Math.Min(lower + 1, RatingLevelWeights.Length - 1);
+        return RatingLevelWeights[lower] + ((RatingLevelWeights[upper] - RatingLevelWeights[lower]) * (level - lower));
     }
 
     private static void Accumulate(Dictionary<string, double> weights, IEnumerable<string> keys, double weight)

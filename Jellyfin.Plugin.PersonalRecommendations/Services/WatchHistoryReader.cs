@@ -69,12 +69,13 @@ public sealed class WatchHistoryReader
                 .Select(e => userData.TryGetValue(e.Id, out var value) ? value : new UserItemData { Key = string.Empty })
                 .ToList();
             var watchedEpisodeCount = episodeUserData.Count(d => d.Played || d.PlayCount > 0);
-            if (watchedEpisodeCount == 0)
+            var seriesData = userData.TryGetValue(series.Id, out var seriesValue) ? seriesValue : new UserItemData { Key = string.Empty };
+
+            // A show someone rated or favorited counts even if they watched it elsewhere.
+            if (watchedEpisodeCount == 0 && !HasInteraction(seriesData))
             {
                 continue;
             }
-
-            var seriesData = userData.TryGetValue(series.Id, out var seriesValue) ? seriesValue : new UserItemData { Key = string.Empty };
             var lastPlayed = episodeUserData
                 .Where(d => d.LastPlayedDate.HasValue)
                 .Select(d => d.LastPlayedDate!.Value)
@@ -100,7 +101,7 @@ public sealed class WatchHistoryReader
     }
 
     private static bool HasInteraction(UserItemData data) =>
-        data.PlayCount > 0 || data.Played || data.IsFavorite || data.Likes.HasValue;
+        data.PlayCount > 0 || data.Played || data.IsFavorite || data.Likes.HasValue || data.Rating > 0;
 
     private static DateTimeOffset? ToDateTimeOffset(DateTime? value) =>
         value.HasValue ? new DateTimeOffset(DateTime.SpecifyKind(value.Value, DateTimeKind.Utc)) : null;

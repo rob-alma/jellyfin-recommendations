@@ -40,7 +40,7 @@ kept bounded and predictable rather than trying to be maximally fast:
 - **The library scan is reused for a few minutes** across nearby triggers instead of re-querying
   Jellyfin for data that hasn't meaningfully changed.
 - **The playback-triggered refresh is off by default.** Recommendations only update on the
-  schedule you set (Scheduled refresh interval, or your own custom trigger under Dashboard →
+  schedule you set (nightly by default, or every few hours, or your own custom trigger under Dashboard →
   Scheduled Tasks) unless you opt into refreshing shortly after playback too.
 
 ## How the widget gets onto the home screen
@@ -91,9 +91,8 @@ On a touch device, Jellyfin's own swipe-between-tabs gesture (Home → Favorites
 skips itself for a touch that starts on an element carrying the `scrollX` class — every native
 scrollable row carries it for exactly this reason, which is why swiping Continue Watching never
 changes tabs. This row carries the same class, so a swipe on it — any speed, starting anywhere on
-the row — scrolls the row instead of ever reaching the tab switcher. If you do navigate to
-Favorites (by tab or swipe) on an account that's never favorited anything, the optional
-favorites-seeding setting below keeps that tab from being empty.
+the row — scrolls the row instead of ever reaching the tab switcher. The plugin never marks
+anything as a favorite on anyone's behalf: favorites are only ever what people pick themselves.
 
 ## Project layout
 
@@ -176,10 +175,10 @@ Available on the plugin's settings page (Dashboard → Plugins → Personal Reco
 | Minimum community rating | 0 (off) | |
 | Recommend movies / series | both on | |
 | Show the widget on the home screen | on | |
-| Seed a few favorites for accounts that have none | on | Cosmetic: the first time recommendations are computed for an account with zero favorites of its own, marks its top 3 recommendations as favorites, so Jellyfin's own Favorites tab isn't empty. Never touches an account that already has any favorites; only ever runs once per account. |
 | Widget heading | `Recommended For You` | |
 | Frontend injection method | Automatic | see "How the widget gets onto the home screen" |
-| Scheduled refresh interval | 6 hours | also runnable on demand; the only refresh trigger by default |
+| Refresh every night at | 3:00 | the scoring runs at night (and on server start); -1 uses the interval below instead |
+| Scheduled refresh interval | 6 hours | only when the nightly refresh is off (-1); also runnable on demand |
 | Refresh automatically after playback | off | opt-in; adds refreshes scattered through the day instead of only on schedule |
 | Auto-refresh debounce | 3 minutes | wait this long after the last watched item (only relevant if the above is on) |
 

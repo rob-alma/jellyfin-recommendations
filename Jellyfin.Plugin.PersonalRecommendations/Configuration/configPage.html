@@ -63,19 +63,6 @@
                         </label>
                     </div>
 
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label class="emby-checkbox-label">
-                            <input id="SeedFavoritesForNewUsers" name="SeedFavoritesForNewUsers" type="checkbox" is="emby-checkbox" />
-                            <span>Seed a few favorites for accounts that have none</span>
-                        </label>
-                        <div class="fieldDescription">
-                            Cosmetic only: the first time recommendations are computed for an account with zero
-                            favorites of its own, marks its top 3 recommendations as favorites so Jellyfin's own
-                            Favorites tab isn't empty. Never touches an account that already has even one favorite,
-                            and only ever runs once per account.
-                        </div>
-                    </div>
-
                     <div class="inputContainer">
                         <label class="inputLabel inputLabelUnfocused" for="WidgetHeading">Widget heading</label>
                         <input id="WidgetHeading" name="WidgetHeading" type="text" is="emby-input" />
@@ -102,7 +89,13 @@
                     </div>
 
                     <div class="inputContainer">
-                        <label class="inputLabel inputLabelUnfocused" for="ScheduledRefreshIntervalHours">Scheduled refresh interval (hours)</label>
+                        <label class="inputLabel inputLabelUnfocused" for="NightlyRefreshHour">Refresh every night at (hour, 0-23)</label>
+                        <input id="NightlyRefreshHour" name="NightlyRefreshHour" type="number" is="emby-input" min="-1" max="23" />
+                        <div class="fieldDescription">The scoring is the heavy part, so by default it runs once a night (3:00) and on server start. Rating something still updates that person's list a minute later. Set to -1 to refresh every few hours instead (the interval below). Takes effect for a new install; on an existing one, change the trigger under Dashboard &gt; Scheduled Tasks &gt; Personal Recommendations.</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="ScheduledRefreshIntervalHours">Scheduled refresh interval (hours, when not nightly)</label>
                         <input id="ScheduledRefreshIntervalHours" name="ScheduledRefreshIntervalHours" type="number" is="emby-input" min="1" max="168" />
                         <div class="fieldDescription">Also runs on demand from Dashboard &gt; Scheduled Tasks &gt; Personal Recommendations.</div>
                     </div>
@@ -152,10 +145,10 @@
                         document.querySelector('#IncludeMovies').checked = config.IncludeMovies;
                         document.querySelector('#IncludeSeries').checked = config.IncludeSeries;
                         document.querySelector('#HomeScreenWidgetEnabled').checked = config.HomeScreenWidgetEnabled;
-                        document.querySelector('#SeedFavoritesForNewUsers').checked = config.SeedFavoritesForNewUsers;
                         document.querySelector('#WidgetHeading').value = config.WidgetHeading;
                         document.querySelector('#FrontendInjectionMethod').value = config.FrontendInjectionMethod;
                         document.querySelector('#ScheduledRefreshIntervalHours').value = config.ScheduledRefreshIntervalHours;
+                        document.querySelector('#NightlyRefreshHour').value = config.NightlyRefreshHour;
                         document.querySelector('#AutoRefreshAfterPlayback').checked = config.AutoRefreshAfterPlayback;
                         document.querySelector('#AutoRefreshDebounceMinutes').value = config.AutoRefreshDebounceMinutes;
                         Dashboard.hideLoadingMsg();
@@ -173,10 +166,11 @@
                         config.IncludeMovies = document.querySelector('#IncludeMovies').checked;
                         config.IncludeSeries = document.querySelector('#IncludeSeries').checked;
                         config.HomeScreenWidgetEnabled = document.querySelector('#HomeScreenWidgetEnabled').checked;
-                        config.SeedFavoritesForNewUsers = document.querySelector('#SeedFavoritesForNewUsers').checked;
                         config.WidgetHeading = document.querySelector('#WidgetHeading').value;
                         config.FrontendInjectionMethod = document.querySelector('#FrontendInjectionMethod').value;
                         config.ScheduledRefreshIntervalHours = parseInt(document.querySelector('#ScheduledRefreshIntervalHours').value, 10);
+                        var nightly = parseInt(document.querySelector('#NightlyRefreshHour').value, 10);
+                        config.NightlyRefreshHour = isNaN(nightly) ? 3 : nightly;
                         config.AutoRefreshAfterPlayback = document.querySelector('#AutoRefreshAfterPlayback').checked;
                         config.AutoRefreshDebounceMinutes = parseInt(document.querySelector('#AutoRefreshDebounceMinutes').value, 10);
                         ApiClient.updatePluginConfiguration(PersonalRecommendationsConfig.pluginUniqueId, config).then(function (result) {
