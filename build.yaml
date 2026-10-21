@@ -1,7 +1,7 @@
 ---
 name: "PersonalRecommendations"
 guid: "9985ba03-cbb5-4b44-a997-3a141a1232ab"
-version: "0.5.1.0"
+version: "0.5.2.0"
 targetAbi: "10.11.0.0"
 framework: "net9.0"
 overview: "Personalized recommendations based on watch history"
@@ -17,6 +17,7 @@ artifacts:
 - "Jellyfin.Plugin.PersonalRecommendations.Core.dll"
 - "Newtonsoft.Json.dll"
 changelog: >
+  0.5.2: Works with Streamline's Continue Watching clean-up: a title someone lost interest in counts a little against similar titles and isn't recommended again; one someone else watched on their account doesn't count for their taste. Titles rated Bad or marked watched there already counted through Jellyfin's own user data.
   0.5.1: Removed the "seed favorites" option: the plugin never marks anything as a favorite (or adds it anywhere) on anyone's behalf any more; only things people choose themselves. Recommendations now refresh once a night (3:00 by default, adjustable; or every few hours as before) plus on server start, so the scoring doesn't run while people are watching; rating something still refreshes that person's list a minute later.
   0.5.0: Your own ratings now shape recommendations. An explicit rating (Jellyfin's per-user rating, e.g. Streamline's Terrible/Bad/Okay/Good/Amazing) replaces the plain-watch weight: Amazing counts 3.5x a plain watch, Good 2x, Okay half, Bad and Terrible push similar titles down. A rating of 0 is treated as no rating (previously it counted as the worst possible one). Rated titles count even if never played on this server, rated or disliked titles are no longer recommended back, and recommendations refresh a minute after a rating changes.
   0.4.8: Found the actual mechanism behind the row-swipe-into-Favorites-tab

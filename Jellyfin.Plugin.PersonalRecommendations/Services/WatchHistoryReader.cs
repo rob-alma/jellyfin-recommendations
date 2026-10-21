@@ -27,14 +27,21 @@ public sealed class WatchHistoryReader
     /// </summary>
     /// <param name="snapshot">A snapshot of the library.</param>
     /// <param name="userData">Each item's user data, from <see cref="UserDataLookup"/>.</param>
-    public IReadOnlyList<WatchSignal> BuildSignals(LibrarySnapshot snapshot, IReadOnlyDictionary<Guid, UserItemData> userData)
+    /// <param name="cleanup">Titles taken out of Continue Watching in Streamline, and why (see <see cref="StreamlineCleanupReader"/>).</param>
+    public IReadOnlyList<WatchSignal> BuildSignals(LibrarySnapshot snapshot, IReadOnlyDictionary<Guid, UserItemData> userData, IReadOnlyDictionary<Guid, string>? cleanup = null)
     {
+        cleanup ??= new Dictionary<Guid, string>();
+
+        // Someone else watched it: not theirs. Lost interest: a dislike unless they rated it.
+        bool Skip(Guid id) => cleanup.TryGetValue(id, out var reason) && reason == StreamlineCleanupReader.NotMe;
+        bool LostInterest(Guid id) => cleanup.TryGetValue(id, out var reason) && reason == StreamlineCleanupReader.LostInterest;
+        bool? Likes(Guid id, UserItemData data) => LostInterest(id) && !(data.Rating > 0) ? false : data.Likes;
         var signals = new List<WatchSignal>();
 
         foreach (var movie in snapshot.Movies)
         {
             var data = userData.TryGetValue(movie.Id, out var value) ? value : new UserItemData { Key = string.Empty };
-            if (!HasInteraction(data))
+            if (Skip(movie.Id) || (!HasInteraction(data) && !LostInterest(movie.Id)))
             {
                 continue;
             }
@@ -49,7 +56,7 @@ public sealed class WatchHistoryReader
                 movie.ProductionYear,
                 data.PlayCount,
                 data.IsFavorite,
-                data.Likes,
+                Likes(movie.Id, data),
                 data.Rating,
                 ToDateTimeOffset(data.LastPlayedDate)));
         }
@@ -60,7 +67,7 @@ public sealed class WatchHistoryReader
         // (a user favorites the show itself), so those are still read from the Series row.
         foreach (var (seriesId, seriesEpisodes) in snapshot.EpisodesBySeriesId)
         {
-            if (!snapshot.SeriesById.TryGetValue(seriesId, out var series))
+            if (!snapshot.SeriesById.TryGetValue(seriesId, out var series) || Skip(seriesId))
             {
                 continue;
             }
@@ -72,7 +79,7 @@ public sealed class WatchHistoryReader
             var seriesData = userData.TryGetValue(series.Id, out var seriesValue) ? seriesValue : new UserItemData { Key = string.Empty };
 
             // A show someone rated or favorited counts even if they watched it elsewhere.
-            if (watchedEpisodeCount == 0 && !HasInteraction(seriesData))
+            if (watchedEpisodeCount == 0 && !HasInteraction(seriesData) && !LostInterest(seriesId))
             {
                 continue;
             }
@@ -92,7 +99,7 @@ public sealed class WatchHistoryReader
                 series.ProductionYear,
                 watchedEpisodeCount,
                 seriesData.IsFavorite,
-                seriesData.Likes,
+                Likes(series.Id, seriesData),
                 seriesData.Rating,
                 ToDateTimeOffset(lastPlayed == default ? null : lastPlayed)));
         }

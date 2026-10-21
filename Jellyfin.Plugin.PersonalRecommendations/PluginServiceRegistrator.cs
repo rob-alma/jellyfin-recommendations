@@ -18,6 +18,7 @@ public sealed class PluginServiceRegistrator : IPluginServiceRegistrator
         serviceCollection.AddSingleton<ItemFeatureExtractor>();
         serviceCollection.AddSingleton<LibrarySnapshotProvider>();
         serviceCollection.AddSingleton<UserDataLookup>();
+        serviceCollection.AddSingleton<StreamlineCleanupReader>();
         serviceCollection.AddSingleton<WatchHistoryReader>();
         serviceCollection.AddSingleton<CandidateProvider>();
         serviceCollection.AddSingleton<RecommendationEngine>();

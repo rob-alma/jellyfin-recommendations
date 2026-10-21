@@ -18,6 +18,7 @@ public sealed class RecommendationEngine
     private readonly UserDataLookup _userDataLookup;
     private readonly WatchHistoryReader _watchHistoryReader;
     private readonly CandidateProvider _candidateProvider;
+    private readonly StreamlineCleanupReader _cleanupReader;
     private readonly ILogger<RecommendationEngine> _logger;
 
     /// <summary>
@@ -27,18 +28,21 @@ public sealed class RecommendationEngine
     /// <param name="userDataLookup">Fetches each item's user data once per refresh.</param>
     /// <param name="watchHistoryReader">Reads per-user watch signals.</param>
     /// <param name="candidateProvider">Builds per-user candidate lists.</param>
+    /// <param name="cleanupReader">Why titles were taken out of Continue Watching in Streamline.</param>
     /// <param name="logger">Logger.</param>
     public RecommendationEngine(
         LibrarySnapshotProvider snapshotProvider,
         UserDataLookup userDataLookup,
         WatchHistoryReader watchHistoryReader,
         CandidateProvider candidateProvider,
+        StreamlineCleanupReader cleanupReader,
         ILogger<RecommendationEngine> logger)
     {
         _snapshotProvider = snapshotProvider;
         _userDataLookup = userDataLookup;
         _watchHistoryReader = watchHistoryReader;
         _candidateProvider = candidateProvider;
+        _cleanupReader = cleanupReader;
         _logger = logger;
     }
 
@@ -60,8 +64,9 @@ public sealed class RecommendationEngine
         // independently calling IUserDataManager.GetUserData on every movie/series/episode.
         var userData = _userDataLookup.Build(user, snapshot);
 
-        var signals = _watchHistoryReader.BuildSignals(snapshot, userData);
-        var candidates = _candidateProvider.GetCandidates(user, snapshot, userData, config);
+        var cleanup = _cleanupReader.Read(user.Id);
+        var signals = _watchHistoryReader.BuildSignals(snapshot, userData, cleanup);
+        var candidates = _candidateProvider.GetCandidates(user, snapshot, userData, config, cleanup);
         var profile = TasteProfileBuilder.Build(signals, DateTimeOffset.UtcNow);
 
         IReadOnlyList<Domain.ScoredCandidate> scored = profile.HasSignal

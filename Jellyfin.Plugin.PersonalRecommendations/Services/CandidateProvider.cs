@@ -32,11 +32,13 @@ public sealed class CandidateProvider
     /// <param name="snapshot">A snapshot of the library.</param>
     /// <param name="userData">Each item's user data, from <see cref="UserDataLookup"/>.</param>
     /// <param name="config">Plugin configuration (item types, rating filter).</param>
+    /// <param name="cleanup">Titles taken out of Continue Watching in Streamline, and why.</param>
     public IReadOnlyList<LibraryCandidate> GetCandidates(
         User user,
         LibrarySnapshot snapshot,
         IReadOnlyDictionary<Guid, UserItemData> userData,
-        PluginConfiguration config)
+        PluginConfiguration config,
+        IReadOnlyDictionary<Guid, string>? cleanup = null)
     {
         var candidates = new List<LibraryCandidate>();
 
@@ -48,6 +50,12 @@ public sealed class CandidateProvider
         if (config.IncludeSeries)
         {
             candidates.AddRange(snapshot.Series.Where(item => !IsAlreadyWatched(user, item, userData)).Select(_featureExtractor.ToCandidate));
+        }
+
+        // Something they lost interest in isn't offered again.
+        if (cleanup is { Count: > 0 })
+        {
+            candidates = candidates.Where(c => !(cleanup.TryGetValue(c.ItemId, out var reason) && reason == StreamlineCleanupReader.LostInterest)).ToList();
         }
 
         if (config.MinimumCommunityRating > 0)
